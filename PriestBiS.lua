@@ -93,6 +93,7 @@ UA.ITEM_METADATA = {
     [19345] = { name = "Aegis of Preservation", role = "HEAL", tier = "B", ep_override = 45, drop = "BWL: Razorgore (11%)", priority = 42, note = "Defense + on-equip mana proc" },
     [58231] = { name = "Penchant of Humility", role = "HEAL", tier = "A", ep_override = 65, drop = "Custom Turtle Item", priority = 20, note = "Solid +healing & MP5 trinket" },
     [61700] = { name = "Fabric of Time", role = "HEAL", tier = "A", ep_override = 70, drop = "Custom Turtle Item", priority = 20, note = "Strong +healing trinket" },
+    [61451] = { name = "Sliver of Hope", role = "HEAL", tier = "S", ep_override = 60, drop = "LKH: Clawlord Howlfang (14%)", priority = 5, note = "Top pre-Naxx sustain trinket (+44 Heal, +7 MP5)" },
     [55124] = { name = "Pure Jewel of Draenor", role = "HEAL", tier = "B", ep_override = 40, drop = "UKH: Rupturan (14%)", priority = 49, note = "Meta gem trinket" },
     [19406] = { name = "Drake Fang Talisman", role = "MELEE", tier = "F", ep_override = 0, drop = "BWL: Ebonroc (17%)", priority = 99, note = "Melee AP/Hit - not for priest" },
     [55353] = { name = "Remains of Overwhelming Power", role = "MELEE", tier = "F", ep_override = 0, drop = "UKH: Anomalus (25%)", priority = 99, note = "Melee AP - not for priest" },
@@ -209,6 +210,7 @@ UA.BOSS_DROPS = {
     ["Magmadar"] = { 16814 },
 
     ["Lord Blackwald II"] = { 55274 },
+    ["Clawlord Howlfang"] = { 61451, 61281 },
     ["Gnarlmoon"] = { 55081, 55084, 55107, 55094 },
     ["King"] = { 55276, 55274, 55103, 55100 },
     ["Echo"] = { 61210 },
