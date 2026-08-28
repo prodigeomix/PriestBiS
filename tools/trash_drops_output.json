@@ -149,7 +149,7 @@
         "is_cloth": false,
         "is_priest_class_restricted": false,
         "is_priest_usable_weapon": true,
-        "weapon_type": "#w6#",
+        "weapon_type": "#h2#",
         "is_jewelry": false,
         "is_priest_appropriate": true
       }

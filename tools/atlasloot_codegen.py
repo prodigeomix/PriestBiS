@@ -15,7 +15,7 @@ import sys
 
 ATLASLOOT_PATH = r"C:\Games\Interface\AddOns\AtlasLoot\Database\Instances.lua"
 UPGRADEALERT_PATH = r"C:\Games\Interface\AddOns\UpgradeAlert\UpgradeAlert.lua"
-TOOLS_DIR = r"C:\Games\Interface\AddOns\UpgradeAlert\Tools"
+TOOLS_DIR = r"C:\Games\Interface\AddOns\UpgradeAlert\tools"
 
 CLOTH_ARMOR_TAG = "#a1#"
 PRIEST_CLASS_TAG = "#c5#"

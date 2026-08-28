@@ -1,0 +1,30 @@
+name: Release Package
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Package PriestBiS Addon
+      run: |
+        mkdir -p PriestBiS
+        cp UpgradeAlert.lua PriestBiS/
+        cp PriestBiS.toc PriestBiS/
+        cp UpgradeAlert.toc PriestBiS/
+        cp LICENSE PriestBiS/
+        cp README.md PriestBiS/
+        zip -r PriestBiS.zip PriestBiS
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: PriestBiS.zip
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
