@@ -847,32 +847,155 @@ end
 
 -- Multilingual Set Bonuses Breakpoint Table
 UA.SET_BONUSES = {
-    -- Transcendence (T2)
-    ["Vestments of Transcendence"] = { [3] = { ep = 25, desc = "3-Piece Bonus: +15% Mana Regen while casting" } },
-    ["卓越法衣"] = { [3] = { ep = 25, desc = "3件套效果: 施法时保持15%的法力回复速度" } },
-    ["Одеяния Превосходства"] = { [3] = { ep = 25, desc = "3 предмета: +15% к скорости восполнения маны во время произнесения заклинаний" } },
-    ["Gewänder der Transzendenz"] = { [3] = { ep = 25, desc = "3-Set: +15% Manaregeneration während des Zauberns" } },
-    ["Habits de transcendance"] = { [3] = { ep = 25, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" } },
+    -- ================================================
+    -- TIER 1: Vestments of Prophecy (MC)
+    -- ================================================
+    ["Vestments of Prophecy"] = {
+        [3] = { ep = 15, desc = "3-Piece Bonus: -0.1s Flash Heal cast time" },
+        [5] = { ep = 16, desc = "5-Piece Bonus: +2% Holy Spell Crit Chance" },
+        [8] = { ep = 20, desc = "8-Piece Bonus: +25% Crit chance for Prayer of Healing" },
+    },
+    ["预言法衣"] = {
+        [3] = { ep = 15, desc = "3件套效果: 快速治疗施法时间减少0.1秒" },
+        [5] = { ep = 16, desc = "5件套效果: 神圣法术暴击几率提高2%" },
+        [8] = { ep = 20, desc = "8件套效果: 治疗祷言暴击几率提高25%" },
+    },
+    ["Одеяния Пророчества"] = {
+        [3] = { ep = 15, desc = "3 предмета: -0.1 сек к времени применения Быстрого исцеления" },
+        [5] = { ep = 16, desc = "5 предметов: +2% к вероятности критического удара заклинаниями Света" },
+        [8] = { ep = 20, desc = "8 предметов: +25% к крит. шансу Молитвы исцеления" },
+    },
+    ["Gewänder der Prophezeiung"] = {
+        [3] = { ep = 15, desc = "3-Set: -0.1s Zauberzeit von Blitzheilung" },
+        [5] = { ep = 16, desc = "5-Set: +2% Chance auf kritischen Treffer mit Heiligzaubern" },
+        [8] = { ep = 20, desc = "8-Set: +25% kritische Trefferchance für Gebet der Heilung" },
+    },
+    ["Habits de prophétie"] = {
+        [3] = { ep = 15, desc = "Bonus 3 pièces: -0.1s temps d'incantation de Soins rapides" },
+        [5] = { ep = 16, desc = "Bonus 5 pièces: +2% de chances de coup critique avec les sorts du Sacré" },
+        [8] = { ep = 20, desc = "Bonus 8 pièces: +25% de chances de coup critique pour Prière de soins" },
+    },
 
-    -- Prophecy (T1)
-    ["Vestments of Prophecy"] = { [3] = { ep = 15, desc = "3-Piece Bonus: -0.1s Flash Heal cast time" } },
-    ["预言法衣"] = { [3] = { ep = 15, desc = "3件套效果: 快速治疗施法时间减少0.1秒" } },
-    ["Одеяния Пророчества"] = { [3] = { ep = 15, desc = "3 предмета: -0.1 сек к времени применения Быстрого исцеления" } },
-    ["Gewänder der Prophezeiung"] = { [3] = { ep = 15, desc = "3-Set: -0.1s Zauberzeit von Blitzheilung" } },
-    ["Habits de prophétie"] = { [3] = { ep = 15, desc = "Bonus 3 pièces: -0.1s temps d'incantation de Soins rapides" } },
+    -- ================================================
+    -- TIER 2: Vestments of Transcendence (BWL)
+    -- ================================================
+    ["Vestments of Transcendence"] = {
+        [3] = { ep = 25, desc = "3-Piece Bonus: +15% Mana Regen while casting" },
+        [5] = { ep = 10, desc = "5-Piece Bonus: Chance to Fade when struck" },
+        [8] = { ep = 40, desc = "8-Piece Bonus: Greater Heal triggers Rank 5 Renew" },
+    },
+    ["卓越法衣"] = {
+        [3] = { ep = 25, desc = "3件套效果: 施法时保持15%的法力回复速度" },
+        [5] = { ep = 10, desc = "5件套效果: 被击中时有几率渐隐" },
+        [8] = { ep = 40, desc = "8件套效果: 强效治疗术触发5级恢复" },
+    },
+    ["Одеяния Превосходства"] = {
+        [3] = { ep = 25, desc = "3 предмета: +15% к скорости восполнения маны во время произнесения заклинаний" },
+        [5] = { ep = 10, desc = "5 предметов: Шанс Ухода в тень при получении урона" },
+        [8] = { ep = 40, desc = "8 предметов: Великое исцеление накладывает Обновление (Ранг 5)" },
+    },
+    ["Gewänder der Transzendenz"] = {
+        [3] = { ep = 25, desc = "3-Set: +15% Manaregeneration während des Zauberns" },
+        [5] = { ep = 10, desc = "5-Set: Chance auf Verblassen bei Erleiden von Schaden" },
+        [8] = { ep = 40, desc = "8-Set: Große Heilung löst Erneuerung (Rang 5) aus" },
+    },
+    ["Habits de transcendance"] = {
+        [3] = { ep = 25, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" },
+        [5] = { ep = 10, desc = "Bonus 5 pièces: Chance d'Oubli en subissant des dégâts" },
+        [8] = { ep = 40, desc = "Bonus 8 pièces: Soins supérieurs déclenche Rénovation (Rang 5)" },
+    },
 
-    -- Major Mojo Infusion (ZG Rings)
-    ["Major Mojo Infusion"] = { [2] = { ep = 21, desc = "2-Piece Set Bonus: +21 Healing & Spell Damage" } },
-    ["主要巨魔灌魔"] = { [2] = { ep = 21, desc = "2件套效果: +21 治疗与法术伤害" } },
-    ["Великое насыщение моджо"] = { [2] = { ep = 21, desc = "2 предмета: +21 к урону и исцелению от заклинаний" } },
-    ["Große Mojo-Infusion"] = { [2] = { ep = 21, desc = "2-Set: +21 Heilung und Zauberschaden" } },
-    ["Infusion de mojo majeure"] = { [2] = { ep = 21, desc = "Bonus 2 pièces: +21 aux soins et dégâts des sorts" } },
+    -- ================================================
+    -- TIER 3: Vestments of Faith (Naxxramas)
+    -- ================================================
+    ["Vestments of Faith"] = {
+        [2] = { ep = 30, desc = "2-Piece Bonus: Renew ticks can restore 100 mana" },
+        [4] = { ep = 35, desc = "4-Piece Bonus: Greater Heal crits reduce next heal mana cost by 500" },
+        [6] = { ep = 10, desc = "6-Piece Bonus: Reduces threat generated by healing spells" },
+        [8] = { ep = 30, desc = "8-Piece Bonus: Epiphany (+24 Heal/Dmg, 500 absorb shield)" },
+    },
+    ["信仰法衣"] = {
+        [2] = { ep = 30, desc = "2件套效果: 恢复每跳有几率回复100点法力值" },
+        [4] = { ep = 35, desc = "4件套效果: 强效治疗术暴击减少下次治疗500法力消耗" },
+        [6] = { ep = 10, desc = "6件套效果: 降低治疗法术产生的威胁值" },
+        [8] = { ep = 30, desc = "8件套效果: 显圣效果 (+24治疗/法伤, 500吸收护盾)" },
+    },
+    ["Одеяния Веры"] = {
+        [2] = { ep = 30, desc = "2 предмета: Тики Обновления могут восполнить 100 маны" },
+        [4] = { ep = 35, desc = "4 предмета: Криты Великого исцеления снижают затраты маны на след. заклинание на 500" },
+        [6] = { ep = 10, desc = "6 предметов: Снижение создаваемой угрозы от исцеления" },
+        [8] = { ep = 30, desc = "8 предметов: Прозрение (+24 к урону/исцелению, поглощение 500 урона)" },
+    },
+    ["Gewänder des Glaubens"] = {
+        [2] = { ep = 30, desc = "2-Set: Ticks von Erneuerung können 100 Mana wiederherstellen" },
+        [4] = { ep = 35, desc = "4-Set: Kritische Treffer mit Große Heilung senken Manakosten um 500" },
+        [6] = { ep = 10, desc = "6-Set: Verringert die durch Heilzauber erzeugte Bedrohung" },
+        [8] = { ep = 30, desc = "8-Set: Eingebung (+24 Heilung/Schaden, 500 Absorptionsschild)" },
+    },
+    ["Habits de foi"] = {
+        [2] = { ep = 30, desc = "Bonus 2 pièces: Les tics de Rénovation peuvent rendre 100 points de mana" },
+        [4] = { ep = 35, desc = "Bonus 4 pièces: Les critiques de Soins supérieurs réduisent le coût du prochain sort de 500 mana" },
+        [6] = { ep = 10, desc = "Bonus 6 pièces: Réduit la menace générée par les sorts de soins" },
+        [8] = { ep = 30, desc = "Bonus 8 pièces: Épiphanie (+24 soins/dégâts, bouclier d'absorption de 500)" },
+    },
 
-    -- Turtle WoW Sets
-    ["The Postulant's Regalia"] = { [2] = { ep = 20, desc = "2-Piece Set Bonus: +20 Healing" } },
-    ["神圣法衣"] = { [2] = { ep = 20, desc = "2件套效果: +20 治疗效果" } },
-    ["Confessor's Raiment"] = { [2] = { ep = 22, desc = "2-Piece Set Bonus: +22 Spell Power" } },
-    ["忏悔者的法衣"] = { [2] = { ep = 22, desc = "2件套效果: +22 法术强度" } },
+    -- ================================================
+    -- DUNGEON 1 & 2: The Devout & Virtuous Garb
+    -- ================================================
+    ["The Devout"] = {
+        [4] = { ep = 15, desc = "4-Piece Set Bonus: +15 Healing & Spell Damage" },
+        [8] = { ep = 8, desc = "8-Piece Set Bonus: +8 All Resistances" },
+    },
+    ["虔诚"] = {
+        [4] = { ep = 15, desc = "4件套效果: +15 治疗与法术伤害" },
+        [8] = { ep = 8, desc = "8件套效果: +8 所有抗性" },
+    },
+    ["Благочестие"] = {
+        [4] = { ep = 15, desc = "4 предмета: +15 к урону и исцелению от заклинаний" },
+        [8] = { ep = 8, desc = "8 предметов: +8 ко всем видам сопротивления" },
+    },
+    ["Vestments of the Virtuous"] = {
+        [4] = { ep = 23, desc = "4-Piece Set Bonus: +23 Healing & Spell Damage" },
+        [8] = { ep = 8, desc = "8-Piece Set Bonus: +8 All Resistances" },
+    },
+    ["勇士的法衣"] = {
+        [4] = { ep = 23, desc = "4件套效果: +23 治疗与法术伤害" },
+        [8] = { ep = 8, desc = "8件套效果: +8 所有抗性" },
+    },
+
+    -- ================================================
+    -- ZUL'GURUB & TURTLE WOW SETS
+    -- ================================================
+    ["Major Mojo Infusion"] = {
+        [2] = { ep = 21, desc = "2-Piece Set Bonus: +21 Healing & Spell Damage" },
+    },
+    ["主要巨魔灌魔"] = {
+        [2] = { ep = 21, desc = "2件套效果: +21 治疗与法术伤害" },
+    },
+    ["Великое насыщение моджо"] = {
+        [2] = { ep = 21, desc = "2 предмета: +21 к урону и исцелению от заклинаний" },
+    },
+    ["Große Mojo-Infusion"] = {
+        [2] = { ep = 21, desc = "2-Set: +21 Heilung und Zauberschaden" },
+    },
+    ["Infusion de mojo majeure"] = {
+        [2] = { ep = 21, desc = "Bonus 2 pièces: +21 aux soins et dégâts des sorts" },
+    },
+
+    ["Confessor's Raiment"] = {
+        [2] = { ep = 22, desc = "2-Piece Set Bonus: +22 Spell Power" },
+        [5] = { ep = 30, desc = "5-Piece Set Bonus: -0.4s Greater Heal cast time" },
+    },
+    ["忏悔者的法衣"] = {
+        [2] = { ep = 22, desc = "2件套效果: +22 法术强度" },
+        [5] = { ep = 30, desc = "5件套效果: 强效治疗术施法时间减少0.4秒" },
+    },
+    ["The Postulant's Regalia"] = {
+        [2] = { ep = 20, desc = "2-Piece Set Bonus: +20 Healing" },
+    },
+    ["神圣法衣"] = {
+        [2] = { ep = 20, desc = "2件套效果: +20 治疗效果" },
+    },
 }
 
 -- Count how many pieces of a set are currently equipped on the player
@@ -906,7 +1029,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     local isEquipable = UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
 
     -- --------------------------------------------
-    -- SET BONUS BREAKPOINT CALCULATION
+    -- SET BONUS BREAKPOINT & LOSS CALCULATION
     -- --------------------------------------------
     local setBonusEP = 0
     local setBonusDesc = nil
@@ -920,6 +1043,22 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             if curCount < breakpoint and projectedCount >= breakpoint then
                 setBonusEP = setBonusEP + (bonusData.ep or 0)
                 setBonusDesc = bonusData.desc
+            end
+        end
+    end
+
+    local lostSetBonusEP = 0
+    local lostSetBonusDesc = nil
+    local currentItemInSlot = UA.GetEquippedItemData(slot)
+    if currentItemInSlot and currentItemInSlot.setName and UA.SET_BONUSES[currentItemInSlot.setName] then
+        if not itemData.setName or itemData.setName ~= currentItemInSlot.setName then
+            local curCount = UA.GetEquippedSetCount(currentItemInSlot.setName)
+            local projectedCount = curCount - 1
+            for breakpoint, bonusData in pairs(UA.SET_BONUSES[currentItemInSlot.setName]) do
+                if curCount >= breakpoint and projectedCount < breakpoint then
+                    lostSetBonusEP = lostSetBonusEP + (bonusData.ep or 0)
+                    lostSetBonusDesc = bonusData.desc
+                end
             end
         end
     end
@@ -945,6 +1084,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         note = itemData.note,
         setBonusEP = setBonusEP,
         setBonusDesc = setBonusDesc,
+        lostSetBonusEP = lostSetBonusEP,
+        lostSetBonusDesc = lostSetBonusDesc,
         roleMismatch = false,
         reason = "",
     }
@@ -1155,15 +1296,16 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     end
 
     local currentScore = UA.GetItemScore(currentItem)
+    local effectiveCurrentScore = currentScore + lostSetBonusEP
     result.replaceSlot = slot
     result.currentScore = currentScore
     result.currentItemName = currentItem.name or slot
-    result.delta = newScore - currentScore
-    if currentScore > 0 then
-        result.pct = ((newScore - currentScore) / currentScore) * 100
+    result.delta = newScore - effectiveCurrentScore
+    if effectiveCurrentScore > 0 then
+        result.pct = ((newScore - effectiveCurrentScore) / effectiveCurrentScore) * 100
     end
 
-    if newScore > currentScore then
+    if newScore > effectiveCurrentScore then
         result.isUpgrade = true
         result.reason = format(L["SCORE_UPGRADE"], currentScore, newScore, result.delta)
     else
@@ -1399,6 +1541,9 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
         end
         if comp.setBonusDesc then
             tooltip:AddLine(format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
+        end
+        if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
+            tooltip:AddLine(format("  |cffff6666Warning: Breaks %s (-%d EP)|r", comp.lostSetBonusDesc or "Set Bonus", comp.lostSetBonusEP), 1, 0.4, 0.4)
         end
         if comp.drop then
             tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
@@ -1875,17 +2020,48 @@ local function PriestBiS_SlashHandler(msg)
         UA_Print(L["TRACKED_GEAR_TITLE"])
         local mhData = UA.GetEquippedItemData("Mainhand")
         local is2H = mhData and (mhData.slot == "Twohand" or mhData.slot == "Staff")
+        local totalGearScore = 0
         for _, slotName in ipairs(UA.GEAR_DISPLAY_ORDER) do
             local data = UA.GetEquippedItemData(slotName)
             if slotName == "Mainhand" and is2H then
-                UA_Print(format("  Twohand: |cffa335ee%s|r (%d EP)", data and data.name or "Equipped", data and UA.GetItemScore(data) or 0))
+                local score = data and UA.GetItemScore(data) or 0
+                totalGearScore = totalGearScore + score
+                UA_Print(format("  Twohand: |cffa335ee%s|r (%d EP)", data and data.name or "Equipped", score))
             elseif slotName == "Offhand" and is2H then
                 UA_Print("  Offhand: |cff888888[N/A - 2H Equipped]|r")
             elseif data then
-                UA_Print(format("  %s: |cffa335ee%s|r (%d EP)", slotName, data.name or "Equipped", UA.GetItemScore(data)))
+                local score = UA.GetItemScore(data)
+                totalGearScore = totalGearScore + score
+                UA_Print(format("  %s: |cffa335ee%s|r (%d EP)", slotName, data.name or "Equipped", score))
             else
                 UA_Print(format("  %s: %s", slotName, L["EMPTY_LABEL"]))
             end
+        end
+
+        -- Active set bonuses
+        local totalSetBonusEP = 0
+        local activeSets = {}
+        for _, slotName in ipairs(UA.GEAR_DISPLAY_ORDER) do
+            local data = UA.GetEquippedItemData(slotName)
+            if data and data.setName and not activeSets[data.setName] then
+                activeSets[data.setName] = true
+                local count = UA.GetEquippedSetCount(data.setName)
+                if UA.SET_BONUSES[data.setName] then
+                    for breakpoint, bonusData in pairs(UA.SET_BONUSES[data.setName]) do
+                        if count >= breakpoint then
+                            totalSetBonusEP = totalSetBonusEP + (bonusData.ep or 0)
+                            UA_Print(format("  |cff00ff00Active Set Bonus:|r |cffffd100%s (%d pc)|r (+%d EP): %s", data.setName, breakpoint, bonusData.ep or 0, bonusData.desc or ""))
+                        end
+                    end
+                end
+            end
+        end
+
+        local grandTotal = totalGearScore + totalSetBonusEP
+        if totalSetBonusEP > 0 then
+            UA_Print(format("  |cffffd100Total Equipped Score:|r |cff00ff00%d EP|r (|cffffffff%d base + %d set bonus|r)", grandTotal, totalGearScore, totalSetBonusEP))
+        else
+            UA_Print(format("  |cffffd100Total Equipped Score:|r |cff00ff00%d EP|r", grandTotal))
         end
     elseif cmd == "help" then
         UA_Print(L["SLASH_HEADER"])
