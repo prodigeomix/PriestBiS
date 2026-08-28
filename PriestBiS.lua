@@ -1,9 +1,11 @@
 -- PriestBiS.lua
 -- Real-time dynamic gear upgrade detection, healing EP scoring, talent sync, and raid roll alerts for Holy & Discipline Priests.
 -- Author: prodigeomix (Carbon) (Optimized for Vanilla 1.12.1 / Turtle WoW 1.18.1)
+-- Multi-Language Support (English, Chinese zhCN, Russian ruRU, German deDE, French frFR)
 -- Strict Lua 5.0 Compliance
 
-local PriestBiS = {}
+local _G = _G or getfenv(0)
+local PriestBiS = PriestBiS or _G.PriestBiS or {}
 local PB = PriestBiS
 local UA = PriestBiS
 _G.PriestBiS = PriestBiS
@@ -13,6 +15,18 @@ local format = string.format
 local tostring = tostring
 local tonumber = tonumber
 local getglobal = getglobal or function(name) return _G[name] end
+
+-- Localization proxy table
+local L = PriestBiS.L or setmetatable({}, {
+    __index = function(t, key)
+        local loc = PriestBiS.Locales and PriestBiS.Locales[PriestBiS.clientLocale or "enUS"]
+        if loc and loc[key] ~= nil then return loc[key] end
+        local fallback = PriestBiS.Locales and PriestBiS.Locales["enUS"]
+        if fallback and fallback[key] ~= nil then return fallback[key] end
+        return key
+    end
+})
+PriestBiS.L = L
 
 -- ================================================
 -- 1. COMPATIBILITY SHIM & LOGGING (Vanilla 1.12.1)
@@ -249,6 +263,67 @@ local EQUIP_SLOT_MAP = {
     ["INVTYPE_RANGEDRIGHT"] = "Wand",
 }
 
+-- Helper to detect armor / weapon subtype across locales
+local function DetectSubtype(str)
+    if not str or str == "" then return nil end
+    if string.find(str, "Leather") or string.find(str, "皮甲") or string.find(str, "Кожа") or string.find(str, "Leder") or string.find(str, "Cuir") then return "Leather"
+    elseif string.find(str, "Mail") or string.find(str, "锁甲") or string.find(str, "Кольчуга") or string.find(str, "Schwere Rüstung") or string.find(str, "Maille") then return "Mail"
+    elseif string.find(str, "Plate") or string.find(str, "板甲") or string.find(str, "Латы") or string.find(str, "Platte") or string.find(str, "Plaques") then return "Plate"
+    elseif string.find(str, "Cloth") or string.find(str, "布甲") or string.find(str, "Ткань") or string.find(str, "Stoff") or string.find(str, "Tissu") then return "Cloth"
+    elseif string.find(str, "Shield") or string.find(str, "盾牌") or string.find(str, "Щит") or string.find(str, "Schild") or string.find(str, "Bouclier") then return "Shield"
+    elseif string.find(str, "Sword") or string.find(str, "剑") or string.find(str, "Меч") or string.find(str, "Schwert") or string.find(str, "Epée") then return "Sword"
+    elseif string.find(str, "Axe") or string.find(str, "斧") or string.find(str, "Топор") or string.find(str, "Axt") or string.find(str, "Hache") then return "Axe"
+    elseif string.find(str, "Polearm") or string.find(str, "长柄武器") or string.find(str, "Древковое") or string.find(str, "Stangenwaffe") or string.find(str, "Arme d'hast") then return "Polearm"
+    elseif string.find(str, "Two%-Handed Mace") or string.find(str, "双手锤") or string.find(str, "Двуручное дробящее") or string.find(str, "Zweihandstreitkolben") or string.find(str, "Masse à deux mains") then return "Two-Handed Mace"
+    elseif string.find(str, "Mace") or string.find(str, "锤") or string.find(str, "Дробящее") or string.find(str, "Streitkolben") or string.find(str, "Masse") then return "Mace"
+    elseif string.find(str, "Dagger") or string.find(str, "匕首") or string.find(str, "Кинжал") or string.find(str, "Dolch") or string.find(str, "Dague") then return "Dagger"
+    elseif string.find(str, "Staff") or string.find(str, "法杖") or string.find(str, "Посох") or string.find(str, "Stab") or string.find(str, "Bâton") then return "Staff"
+    elseif string.find(str, "Wand") or string.find(str, "魔杖") or string.find(str, "Жезл") or string.find(str, "Zauberstab") or string.find(str, "Baguette") then return "Wand"
+    elseif string.find(str, "Bow") or string.find(str, "弓") or string.find(str, "Лук") or string.find(str, "Bogen") or string.find(str, "Arc") then return "Bow"
+    elseif string.find(str, "Gun") or string.find(str, "枪械") or string.find(str, "Огнестрельное") or string.find(str, "Schusswaffe") or string.find(str, "Arme à feu") then return "Gun"
+    elseif string.find(str, "Crossbow") or string.find(str, "弩") or string.find(str, "Арбалет") or string.find(str, "Armbrust") or string.find(str, "Arbalète") then return "Crossbow"
+    end
+    return nil
+end
+
+-- Helper to test string against a list of pattern regexes
+local function MatchFirstPattern(text, patternList)
+    if not text or not patternList then return nil end
+    for _, pat in ipairs(patternList) do
+        local _, _, val = string.find(text, pat)
+        if val then return tonumber(val) end
+    end
+    return nil
+end
+
+-- Helper to scan across all registered patterns for a stat category
+local function ScanStatAcrossLocales(text, statCategory)
+    if not text or not PriestBiS.Patterns then return nil end
+
+    -- Check current locale first
+    local activeLoc = PriestBiS.clientLocale or "enUS"
+    if PriestBiS.Patterns[activeLoc] and PriestBiS.Patterns[activeLoc][statCategory] then
+        local val = MatchFirstPattern(text, PriestBiS.Patterns[activeLoc][statCategory])
+        if val then return val end
+    end
+
+    -- Check enUS fallback if active locale was different
+    if activeLoc ~= "enUS" and PriestBiS.Patterns["enUS"] and PriestBiS.Patterns["enUS"][statCategory] then
+        local val = MatchFirstPattern(text, PriestBiS.Patterns["enUS"][statCategory])
+        if val then return val end
+    end
+
+    -- Check all other registered locales
+    for locName, pGroup in pairs(PriestBiS.Patterns) do
+        if locName ~= activeLoc and locName ~= "enUS" and pGroup[statCategory] then
+            local val = MatchFirstPattern(text, pGroup[statCategory])
+            if val then return val end
+        end
+    end
+
+    return nil
+end
+
 -- Parse item stats dynamically from tooltip
 function UA.ScanItemStats(itemID, itemLink, slotID)
     if not itemID and not itemLink and not slotID then return nil end
@@ -319,7 +394,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     stats.name = text
                 end
 
-                -- Detect Set Name (e.g. "Vestments of Transcendence (0/8)", "Vestments of Prophecy (2/8)", "Major Mojo Infusion (1/2)")
+                -- Detect Set Name (e.g. "Vestments of Transcendence (0/8)", "卓越法衣 (0/8)", "Одеяния Превосходства (0/8)")
                 if not stats.setName then
                     local _, _, sName = string.find(text, "([^%(]+)%s*%(%d+/%d+%)")
                     if sName and sName ~= "" then
@@ -329,138 +404,89 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     end
                 end
 
-                -- Check Class restrictions (e.g. "Classes: Druid, Shaman, Paladin")
+                -- Check Class restrictions (English, German, French, Chinese, Russian)
                 local _, _, classStr = string.find(text, "Classes:%s*(.+)")
                 if not classStr then _, _, classStr = string.find(text, "Klassen:%s*(.+)") end
                 if not classStr then _, _, classStr = string.find(text, "Classes%s*:%s*(.+)") end
+                if not classStr then _, _, classStr = string.find(text, "职业[：:]%s*(.+)") end
+                if not classStr then _, _, classStr = string.find(text, "Классы:%s*(.+)") end
+                if not classStr then _, _, classStr = string.find(text, "Класс:%s*(.+)") end
                 if classStr then
                     stats.restrictedClasses = {}
-                    if string.find(classStr, "Priest") or string.find(classStr, "Priester") or string.find(classStr, "Prêtre") then
+                    if string.find(classStr, "Priest") or string.find(classStr, "Priester") or string.find(classStr, "Prêtre") or string.find(classStr, "牧师") or string.find(classStr, "Жрец") then
                         stats.restrictedClasses["PRIEST"] = true
                     end
                 end
 
                 -- Match +Healing
-                local _, _, val = string.find(text, "Increases healing done by spells and effects by up to (%d+)")
-                if not val then _, _, val = string.find(text, "Increases healing done by up to (%d+)") end
-                if not val then _, _, val = string.find(text, "Increases healing done by magical spells and effects by up to (%d+)") end
-                if not val then _, _, val = string.find(text, "Increases healing by up to (%d+)") end
-                if val then stats.healing = stats.healing + tonumber(val) end
+                local valH = ScanStatAcrossLocales(text, "HEALING")
+                if valH then stats.healing = stats.healing + valH end
 
-                local _, _, val2 = string.find(text, "%+(%d+) Healing Spells")
-                if not val2 then _, _, val2 = string.find(text, "%+(%d+) Healing") end
-                if not val2 then _, _, val2 = string.find(text, "(%d+) Healing Spells") end
-                if val2 then stats.healing = stats.healing + tonumber(val2) end
+                       -- Match Intellect, Spirit, Stamina
+                local valInt = ScanStatAcrossLocales(text, "INT")
+                if valInt then stats.int = stats.int + valInt end
 
-                -- Match +Damage and Healing (applies 100% to healing in vanilla)
-                local _, _, valDH = string.find(text, "Increases damage and healing done by magical spells and effects by up to (%d+)")
-                if not valDH then _, _, valDH = string.find(text, "Increases damage and healing done by spells and effects by up to (%d+)") end
-                if not valDH then _, _, valDH = string.find(text, "Increases spell damage and healing by up to (%d+)") end
-                if not valDH then _, _, valDH = string.find(text, "Increases damage and healing by up to (%d+)") end
-                if not valDH then _, _, valDH = string.find(text, "Increases damage and healing done by Holy spells and effects by up to (%d+)") end
-                if valDH then stats.healing = stats.healing + tonumber(valDH) end
+                local valSpi = ScanStatAcrossLocales(text, "SPI")
+                if valSpi then stats.spi = stats.spi + valSpi end
 
-                local _, _, valDH2 = string.find(text, "%+(%d+) Spell Damage and Healing")
-                if not valDH2 then _, _, valDH2 = string.find(text, "%+(%d+) Damage and Healing Spells") end
-                if not valDH2 then _, _, valDH2 = string.find(text, "%+(%d+) Damage and Healing") end
-                if not valDH2 then _, _, valDH2 = string.find(text, "%+(%d+) Spell Power") end
-                if valDH2 then stats.healing = stats.healing + tonumber(valDH2) end
-
-                -- Match Intellect, Spirit, Stamina
-                local _, _, valInt = string.find(text, "%+(%d+) Intellect")
-                if not valInt then _, _, valInt = string.find(text, "(%d+) Intellect") end
-                if valInt then stats.int = stats.int + tonumber(valInt) end
-
-                local _, _, valSpi = string.find(text, "%+(%d+) Spirit")
-                if not valSpi then _, _, valSpi = string.find(text, "(%d+) Spirit") end
-                if valSpi then stats.spi = stats.spi + tonumber(valSpi) end
-
-                local _, _, valStam = string.find(text, "%+(%d+) Stamina")
-                if not valStam then _, _, valStam = string.find(text, "(%d+) Stamina") end
-                if valStam then stats.stam = stats.stam + tonumber(valStam) end
+                local valStam = ScanStatAcrossLocales(text, "STAM")
+                if valStam then stats.stam = stats.stam + valStam end
 
                 -- Match MP5
-                local _, _, valMP5 = string.find(text, "Restores (%d+) mana per 5 sec%.")
-                if not valMP5 then _, _, valMP5 = string.find(text, "Restores (%d+) [Mm]ana per 5 [Ss]ec") end
-                if not valMP5 then _, _, valMP5 = string.find(text, "(%d+) Mana every 5 sec%.") end
-                if not valMP5 then _, _, valMP5 = string.find(text, "(%d+) Mana per 5 sec%.") end
-                if not valMP5 then _, _, valMP5 = string.find(text, "(%d+) [Mm]ana per 5 [Ss]ec") end
-                if not valMP5 then _, _, valMP5 = string.find(text, "(%d+) [Mm]ana every 5 [Ss]ec") end
-                if valMP5 then stats.mp5 = stats.mp5 + tonumber(valMP5) end
+                local valMP5 = ScanStatAcrossLocales(text, "MP5")
+                if valMP5 then stats.mp5 = stats.mp5 + valMP5 end
 
                 -- Match Spell Crit
-                local _, _, valCrit = string.find(text, "Increases your chance to get a critical strike with spells by (%d+)%%")
-                if not valCrit then _, _, valCrit = string.find(text, "Improves your chance to get a critical strike with spells by (%d+)%%") end
-                if not valCrit then _, _, valCrit = string.find(text, "Increases your chance to get a critical strike with holy spells by (%d+)%%") end
-                if not valCrit then _, _, valCrit = string.find(text, "Improves your chance to get a critical strike with holy spells by (%d+)%%") end
-                if not valCrit then _, _, valCrit = string.find(text, "%+(%d+)%% Spell Critical Strike") end
-                if not valCrit then _, _, valCrit = string.find(text, "%+(%d+)%% Spell Critical") end
-                if not valCrit then _, _, valCrit = string.find(text, "%+(%d+)%% Critical Strike") end
-                if valCrit then stats.crit = stats.crit + tonumber(valCrit) end
+                local valCrit = ScanStatAcrossLocales(text, "CRIT")
+                if valCrit then stats.crit = stats.crit + valCrit end
 
                 -- Detect slot from tooltip if not yet found
                 if not stats.slot then
-                    if string.find(text, "Head") then stats.slot = "Head"
-                    elseif string.find(text, "Neck") then stats.slot = "Neck"
-                    elseif string.find(text, "Shoulder") then stats.slot = "Shoulder"
-                    elseif string.find(text, "Back") or string.find(text, "Cloak") then stats.slot = "Back"
-                    elseif string.find(text, "Chest") or string.find(text, "Robe") then stats.slot = "Chest"
-                    elseif string.find(text, "Wrist") or string.find(text, "Bracer") then stats.slot = "Wrists"
-                    elseif string.find(text, "Hands") or string.find(text, "Gloves") then stats.slot = "Hands"
-                    elseif string.find(text, "Waist") or string.find(text, "Belt") then stats.slot = "Belt"
-                    elseif string.find(text, "Legs") or string.find(text, "Pants") then stats.slot = "Legs"
-                    elseif string.find(text, "Feet") or string.find(text, "Boots") then stats.slot = "Boots"
-                    elseif string.find(text, "Finger") or string.find(text, "Ring") then stats.slot = "Ring"
-                    elseif string.find(text, "Trinket") then stats.slot = "Trinket"
-                    elseif string.find(text, "Two%-Hand") then stats.slot = "Twohand"
-                    elseif string.find(text, "Main Hand") then stats.slot = "Mainhand"
-                    elseif string.find(text, "One%-Hand") then stats.slot = "Mainhand"
-                    elseif string.find(text, "Held In Off%-Hand") or string.find(text, "Off Hand") then stats.slot = "Offhand"
-                    elseif string.find(text, "Ranged") or string.find(text, "Wand") then stats.slot = "Wand"
+                    if string.find(text, "Head") or string.find(text, "头部") or string.find(text, "Голова") or string.find(text, "Kopf") or string.find(text, "Tête") then stats.slot = "Head"
+                    elseif string.find(text, "Neck") or string.find(text, "颈部") or string.find(text, "Шея") or string.find(text, "Hals") or string.find(text, "Cou") then stats.slot = "Neck"
+                    elseif string.find(text, "Shoulder") or string.find(text, "肩部") or string.find(text, "Плечи") or string.find(text, "Schulter") or string.find(text, "Épaule") or string.find(text, "Epaule") then stats.slot = "Shoulder"
+                    elseif string.find(text, "Back") or string.find(text, "Cloak") or string.find(text, "背部") or string.find(text, "披风") or string.find(text, "Спина") or string.find(text, "Плащ") or string.find(text, "Rücken") or string.find(text, "Umhang") or string.find(text, "Dos") or string.find(text, "Cape") then stats.slot = "Back"
+                    elseif string.find(text, "Chest") or string.find(text, "Robe") or string.find(text, "胸部") or string.find(text, "衣服") or string.find(text, "长袍") or string.find(text, "Грудь") or string.find(text, "Brust") or string.find(text, "Torse") then stats.slot = "Chest"
+                    elseif string.find(text, "Wrist") or string.find(text, "Bracer") or string.find(text, "手腕") or string.find(text, "护腕") or string.find(text, "Запястья") or string.find(text, "Наручи") or string.find(text, "Handgelenke") or string.find(text, "Armschienen") or string.find(text, "Poignets") then stats.slot = "Wrists"
+                    elseif string.find(text, "Hands") or string.find(text, "Gloves") or string.find(text, "手") or string.find(text, "手套") or string.find(text, "Кисти рук") or string.find(text, "Перчатки") or string.find(text, "Hände") or string.find(text, "Handschuhe") or string.find(text, "Mains") or string.find(text, "Gants") then stats.slot = "Hands"
+                    elseif string.find(text, "Waist") or string.find(text, "Belt") or string.find(text, "腰部") or string.find(text, "腰带") or string.find(text, "Пояс") or string.find(text, "Taille") or string.find(text, "Gürtel") or string.find(text, "Ceinture") then stats.slot = "Belt"
+                    elseif string.find(text, "Legs") or string.find(text, "Pants") or string.find(text, "腿部") or string.find(text, "裤子") or string.find(text, "Ноги") or string.find(text, "Штаны") or string.find(text, "Beine") or string.find(text, "Hosen") or string.find(text, "Jambes") or string.find(text, "Pantalon") then stats.slot = "Legs"
+                    elseif string.find(text, "Feet") or string.find(text, "Boots") or string.find(text, "脚") or string.find(text, "鞋子") or string.find(text, "Ступни") or string.find(text, "Сапоги") or string.find(text, "Füße") or string.find(text, "Stiefel") or string.find(text, "Pieds") or string.find(text, "Bottes") then stats.slot = "Boots"
+                    elseif string.find(text, "Finger") or string.find(text, "Ring") or string.find(text, "手指") or string.find(text, "戒指") or string.find(text, "Палец") or string.find(text, "Кольцо") or string.find(text, "Doigt") or string.find(text, "Anneau") or string.find(text, "Bague") then stats.slot = "Ring"
+                    elseif string.find(text, "Trinket") or string.find(text, "饰品") or string.find(text, "Аксессуар") or string.find(text, "Schmuck") or string.find(text, "Bijou") then stats.slot = "Trinket"
+                    elseif string.find(text, "Two%-Hand") or string.find(text, "双手") or string.find(text, "Двуручное") or string.find(text, "Zweihändig") or string.find(text, "Deux mains") then stats.slot = "Twohand"
+                    elseif string.find(text, "Main Hand") or string.find(text, "One%-Hand") or string.find(text, "主手") or string.find(text, "单手") or string.find(text, "Правая рука") or string.find(text, "Одноручное") or string.find(text, "Waffenhand") or string.find(text, "Einhand") or string.find(text, "Main droite") or string.find(text, "Une main") then stats.slot = "Mainhand"
+                    elseif string.find(text, "Held In Off%-Hand") or string.find(text, "Off Hand") or string.find(text, "副手") or string.find(text, "左手") or string.find(text, "Левая рука") or string.find(text, "Schildhand") or string.find(text, "En main gauche") then stats.slot = "Offhand"
+                    elseif string.find(text, "Ranged") or string.find(text, "Wand") or string.find(text, "远程") or string.find(text, "魔杖") or string.find(text, "Дальний бой") or string.find(text, "Жезл") or string.find(text, "Distanz") or string.find(text, "Zauberstab") or string.find(text, "À distance") or string.find(text, "Baguette") then stats.slot = "Wand"
                     end
                 end
             end
 
-            if rText and rText ~= "" then
-                -- Detect armor / weapon subtype from right-aligned text
-                if not stats.subType then
-                    if string.find(rText, "Leather") or string.find(rText, "Leder") or string.find(rText, "Cuir") then stats.subType = "Leather"
-                    elseif string.find(rText, "Mail") or string.find(rText, "Schwere Rüstung") or string.find(rText, "Maille") then stats.subType = "Mail"
-                    elseif string.find(rText, "Plate") or string.find(rText, "Platte") or string.find(rText, "Plaques") then stats.subType = "Plate"
-                    elseif string.find(rText, "Cloth") or string.find(rText, "Stoff") or string.find(rText, "Tissu") then stats.subType = "Cloth"
-                    elseif string.find(rText, "Shield") or string.find(rText, "Schild") or string.find(rText, "Bouclier") then stats.subType = "Shield"
-                    elseif string.find(rText, "Sword") or string.find(rText, "Schwert") or string.find(rText, "Epée") then stats.subType = "Sword"
-                    elseif string.find(rText, "Axe") or string.find(rText, "Axt") or string.find(rText, "Hache") then stats.subType = "Axe"
-                    elseif string.find(rText, "Polearm") or string.find(rText, "Stangenwaffe") or string.find(rText, "Arme d'hast") then stats.subType = "Polearm"
-                    elseif string.find(rText, "Two%-Handed Mace") then stats.subType = "Two-Handed Mace"
-                    elseif string.find(rText, "Mace") or string.find(rText, "Streitkolben") or string.find(rText, "Masse") then stats.subType = "Mace"
-                    elseif string.find(rText, "Dagger") or string.find(rText, "Dolch") or string.find(rText, "Dague") then stats.subType = "Dagger"
-                    elseif string.find(rText, "Staff") or string.find(rText, "Stab") or string.find(rText, "Bâton") then stats.subType = "Staff"
-                    elseif string.find(rText, "Wand") or string.find(rText, "Zauberstab") or string.find(rText, "Baguette") then stats.subType = "Wand"
-                    elseif string.find(rText, "Bow") or string.find(rText, "Bogen") or string.find(rText, "Arc") then stats.subType = "Bow"
-                    elseif string.find(rText, "Gun") or string.find(rText, "Schusswaffe") or string.find(rText, "Arme à feu") then stats.subType = "Gun"
-                    elseif string.find(rText, "Crossbow") or string.find(rText, "Armbrust") or string.find(rText, "Arbalète") then stats.subType = "Crossbow"
-                    end
+            if not stats.subType then
+                stats.subType = DetectSubtype(rText)
+                if not stats.subType and i > 1 then
+                    stats.subType = DetectSubtype(text)
                 end
+            end
 
+            if rText and rText ~= "" then
                 if not stats.slot then
-                    if string.find(rText, "Head") then stats.slot = "Head"
-                    elseif string.find(rText, "Neck") then stats.slot = "Neck"
-                    elseif string.find(rText, "Shoulder") then stats.slot = "Shoulder"
-                    elseif string.find(rText, "Back") or string.find(rText, "Cloak") then stats.slot = "Back"
-                    elseif string.find(rText, "Chest") or string.find(rText, "Robe") then stats.slot = "Chest"
-                    elseif string.find(rText, "Wrist") or string.find(rText, "Bracer") then stats.slot = "Wrists"
-                    elseif string.find(rText, "Hands") or string.find(rText, "Gloves") then stats.slot = "Hands"
-                    elseif string.find(rText, "Waist") or string.find(rText, "Belt") then stats.slot = "Belt"
-                    elseif string.find(rText, "Legs") or string.find(rText, "Pants") then stats.slot = "Legs"
-                    elseif string.find(rText, "Feet") or string.find(rText, "Boots") then stats.slot = "Boots"
-                    elseif string.find(rText, "Finger") or string.find(rText, "Ring") then stats.slot = "Ring"
-                    elseif string.find(rText, "Trinket") then stats.slot = "Trinket"
-                    elseif string.find(rText, "Two%-Hand") then stats.slot = "Twohand"
-                    elseif string.find(rText, "Main Hand") then stats.slot = "Mainhand"
-                    elseif string.find(rText, "One%-Hand") then stats.slot = "Mainhand"
-                    elseif string.find(rText, "Held In Off%-Hand") or string.find(rText, "Off Hand") then stats.slot = "Offhand"
-                    elseif string.find(rText, "Ranged") or string.find(rText, "Wand") then stats.slot = "Wand"
+                    if string.find(rText, "Head") or string.find(rText, "头部") or string.find(rText, "Голова") or string.find(rText, "Kopf") or string.find(rText, "Tête") then stats.slot = "Head"
+                    elseif string.find(rText, "Neck") or string.find(rText, "颈部") or string.find(rText, "Шея") or string.find(rText, "Hals") or string.find(rText, "Cou") then stats.slot = "Neck"
+                    elseif string.find(rText, "Shoulder") or string.find(rText, "肩部") or string.find(rText, "Плечи") or string.find(rText, "Schulter") or string.find(rText, "Épaule") or string.find(rText, "Epaule") then stats.slot = "Shoulder"
+                    elseif string.find(rText, "Back") or string.find(rText, "Cloak") or string.find(rText, "背部") or string.find(rText, "披风") or string.find(rText, "Спина") or string.find(rText, "Плащ") or string.find(rText, "Rücken") or string.find(rText, "Umhang") or string.find(rText, "Dos") or string.find(rText, "Cape") then stats.slot = "Back"
+                    elseif string.find(rText, "Chest") or string.find(rText, "Robe") or string.find(rText, "胸部") or string.find(rText, "衣服") or string.find(rText, "长袍") or string.find(rText, "Грудь") or string.find(rText, "Brust") or string.find(rText, "Torse") then stats.slot = "Chest"
+                    elseif string.find(rText, "Wrist") or string.find(rText, "Bracer") or string.find(rText, "手腕") or string.find(rText, "护腕") or string.find(rText, "Запястья") or string.find(rText, "Наручи") or string.find(rText, "Handgelenke") or string.find(rText, "Armschienen") or string.find(rText, "Poignets") then stats.slot = "Wrists"
+                    elseif string.find(rText, "Hands") or string.find(rText, "Gloves") or string.find(rText, "手") or string.find(rText, "手套") or string.find(rText, "Кисти рук") or string.find(rText, "Перчатки") or string.find(rText, "Hände") or string.find(rText, "Handschuhe") or string.find(rText, "Mains") or string.find(rText, "Gants") then stats.slot = "Hands"
+                    elseif string.find(rText, "Waist") or string.find(rText, "Belt") or string.find(rText, "腰部") or string.find(rText, "腰带") or string.find(rText, "Пояс") or string.find(rText, "Taille") or string.find(rText, "Gürtel") or string.find(rText, "Ceinture") then stats.slot = "Belt"
+                    elseif string.find(rText, "Legs") or string.find(rText, "Pants") or string.find(rText, "腿部") or string.find(rText, "裤子") or string.find(rText, "Ноги") or string.find(rText, "Штаны") or string.find(rText, "Beine") or string.find(rText, "Hosen") or string.find(rText, "Jambes") or string.find(rText, "Pantalon") then stats.slot = "Legs"
+                    elseif string.find(rText, "Feet") or string.find(rText, "Boots") or string.find(rText, "脚") or string.find(rText, "鞋子") or string.find(rText, "Ступни") or string.find(rText, "Сапоги") or string.find(rText, "Füße") or string.find(rText, "Stiefel") or string.find(rText, "Pieds") or string.find(rText, "Bottes") then stats.slot = "Boots"
+                    elseif string.find(rText, "Finger") or string.find(rText, "Ring") or string.find(rText, "手指") or string.find(rText, "戒指") or string.find(rText, "Палец") or string.find(rText, "Кольцо") or string.find(rText, "Doigt") or string.find(rText, "Anneau") or string.find(rText, "Bague") then stats.slot = "Ring"
+                    elseif string.find(rText, "Trinket") or string.find(rText, "饰品") or string.find(rText, "Аксессуар") or string.find(rText, "Schmuck") or string.find(rText, "Bijou") then stats.slot = "Trinket"
+                    elseif string.find(rText, "Two%-Hand") or string.find(rText, "双手") or string.find(rText, "Двуручное") or string.find(rText, "Zweihändig") or string.find(rText, "Deux mains") then stats.slot = "Twohand"
+                    elseif string.find(rText, "Main Hand") or string.find(rText, "One%-Hand") or string.find(rText, "主手") or string.find(rText, "单手") or string.find(rText, "Правая рука") or string.find(rText, "Одноручное") or string.find(rText, "Waffenhand") or string.find(rText, "Einhand") or string.find(rText, "Main droite") or string.find(rText, "Une main") then stats.slot = "Mainhand"
+                    elseif string.find(rText, "Held In Off%-Hand") or string.find(rText, "Off Hand") or string.find(rText, "副手") or string.find(rText, "左手") or string.find(rText, "Левая рука") or string.find(rText, "Schildhand") or string.find(rText, "En main gauche") then stats.slot = "Offhand"
+                    elseif string.find(rText, "Ranged") or string.find(rText, "Wand") or string.find(rText, "远程") or string.find(rText, "魔杖") or string.find(rText, "Дальний бой") or string.find(rText, "Жезл") or string.find(rText, "Distanz") or string.find(rText, "Zauberstab") or string.find(rText, "À distance") or string.find(rText, "Baguette") then stats.slot = "Wand"
                     end
                 end
             end
@@ -668,32 +694,32 @@ end
 function UA.FormatStatBreakdown(itemData)
     if not itemData then return "" end
     if itemData.ep_override then
-        return format("|cff888888Special: Curated Tier %s Effect (%d EP)|r", itemData.tier or "S", itemData.ep_override)
+        return format("|cff888888" .. L["STAT_SPECIAL_TIER"] .. "|r", itemData.tier or "S", itemData.ep_override)
     end
 
     local parts = {}
     if itemData.healing and itemData.healing > 0 then
-        table.insert(parts, format("+%d Heal", itemData.healing))
+        table.insert(parts, format(L["STAT_HEAL"], itemData.healing))
     end
     if itemData.spi and itemData.spi > 0 then
         local epSpi = itemData.spi * UA.STAT_WEIGHTS.spi
-        table.insert(parts, format("+%d Spi (%.1f)", itemData.spi, epSpi))
+        table.insert(parts, format(L["STAT_SPI"], itemData.spi, epSpi))
     end
     if itemData.mp5 and itemData.mp5 > 0 then
         local epMp5 = itemData.mp5 * UA.STAT_WEIGHTS.mp5
-        table.insert(parts, format("+%d MP5 (%.1f)", itemData.mp5, epMp5))
+        table.insert(parts, format(L["STAT_MP5"], itemData.mp5, epMp5))
     end
     if itemData.crit and itemData.crit > 0 then
         local epCrit = itemData.crit * UA.STAT_WEIGHTS.spell_crit
-        table.insert(parts, format("+%d%% Crit (%.1f)", itemData.crit, epCrit))
+        table.insert(parts, format(L["STAT_CRIT"], itemData.crit, epCrit))
     end
     if itemData.int and itemData.int > 0 then
         local epInt = itemData.int * UA.STAT_WEIGHTS.int
-        table.insert(parts, format("+%d Int (%.1f)", itemData.int, epInt))
+        table.insert(parts, format(L["STAT_INT"], itemData.int, epInt))
     end
     if itemData.stam and itemData.stam > 0 then
         local epStam = itemData.stam * UA.STAT_WEIGHTS.stamina
-        table.insert(parts, format("+%d Stam (%.1f)", itemData.stam, epStam))
+        table.insert(parts, format(L["STAT_STAM"], itemData.stam, epStam))
     end
 
     local numParts = table.getn(parts)
@@ -701,7 +727,7 @@ function UA.FormatStatBreakdown(itemData)
         return ""
     end
 
-    local str = "|cff888888Breakdown: "
+    local str = "|cff888888" .. L["TOOLTIP_BREAKDOWN"] .. " "
     for i = 1, numParts do
         str = str .. (i > 1 and " | " or "") .. parts[i]
     end
@@ -740,24 +766,24 @@ end
 -- 6. CORE UPGRADE COMPARISON LOGIC & EQUIPABILITY
 -- ================================================
 
--- Priest Armor & Weapon Equipability Rules
+-- Priest Armor & Weapon Equipability Rules across all locales
 local PRIEST_PROHIBITED_ARMOR = {
-    ["Leather"] = true, ["Leder"] = true, ["Cuir"] = true,
-    ["Mail"] = true, ["Schwere Rüstung"] = true, ["Maille"] = true,
-    ["Plate"] = true, ["Platte"] = true, ["Plaques"] = true,
-    ["Shield"] = true, ["Shields"] = true, ["Schild"] = true, ["Bouclier"] = true,
+    ["Leather"] = true, ["皮甲"] = true, ["Кожа"] = true, ["Leder"] = true, ["Cuir"] = true,
+    ["Mail"] = true, ["锁甲"] = true, ["Кольчуга"] = true, ["Schwere Rüstung"] = true, ["Maille"] = true,
+    ["Plate"] = true, ["板甲"] = true, ["Латы"] = true, ["Platte"] = true, ["Plaques"] = true,
+    ["Shield"] = true, ["Shields"] = true, ["盾牌"] = true, ["Щит"] = true, ["Щиты"] = true, ["Schild"] = true, ["Bouclier"] = true,
 }
 
 local PRIEST_PROHIBITED_WEAPONS = {
-    ["Sword"] = true, ["One-Handed Swords"] = true, ["Two-Handed Swords"] = true, ["Schwert"] = true, ["Epée"] = true,
-    ["Axe"] = true, ["One-Handed Axes"] = true, ["Two-Handed Axes"] = true, ["Axt"] = true, ["Hache"] = true,
-    ["Two-Handed Maces"] = true, ["Zweihandstreitkolben"] = true,
-    ["Polearm"] = true, ["Polearms"] = true, ["Stangenwaffe"] = true, ["Arme d'hast"] = true,
-    ["Bow"] = true, ["Bows"] = true, ["Bogen"] = true, ["Arc"] = true,
-    ["Gun"] = true, ["Guns"] = true, ["Schusswaffe"] = true, ["Arme à feu"] = true,
-    ["Crossbow"] = true, ["Crossbows"] = true, ["Armbrust"] = true, ["Arbalète"] = true,
-    ["Thrown"] = true, ["Wurfwaffe"] = true,
-    ["Fist Weapon"] = true, ["Fist Weapons"] = true, ["Faustwaffe"] = true,
+    ["Sword"] = true, ["One-Handed Swords"] = true, ["Two-Handed Swords"] = true, ["剑"] = true, ["单手剑"] = true, ["双手剑"] = true, ["Меч"] = true, ["Одноручные мечи"] = true, ["Двуручные мечи"] = true, ["Schwert"] = true, ["Epée"] = true,
+    ["Axe"] = true, ["One-Handed Axes"] = true, ["Two-Handed Axes"] = true, ["斧"] = true, ["单手斧"] = true, ["双手斧"] = true, ["Топор"] = true, ["Одноручные топоры"] = true, ["Двуручные топоры"] = true, ["Axt"] = true, ["Hache"] = true,
+    ["Two-Handed Maces"] = true, ["双手锤"] = true, ["Двуручное дробящее"] = true, ["Zweihandstreitkolben"] = true, ["Masse à deux mains"] = true,
+    ["Polearm"] = true, ["Polearms"] = true, ["长柄武器"] = true, ["Древковое"] = true, ["Stangenwaffe"] = true, ["Arme d'hast"] = true,
+    ["Bow"] = true, ["Bows"] = true, ["弓"] = true, ["Лук"] = true, ["Bogen"] = true, ["Arc"] = true,
+    ["Gun"] = true, ["Guns"] = true, ["枪械"] = true, ["Огнестрельное"] = true, ["Schusswaffe"] = true, ["Arme à feu"] = true,
+    ["Crossbow"] = true, ["Crossbows"] = true, ["弩"] = true, ["Арбалет"] = true, ["Armbrust"] = true, ["Arbalète"] = true,
+    ["Thrown"] = true, ["投掷武器"] = true, ["Метательное"] = true, ["Wurfwaffe"] = true,
+    ["Fist Weapon"] = true, ["Fist Weapons"] = true, ["拳套"] = true, ["Кистевое"] = true, ["Faustwaffe"] = true,
 }
 
 -- Check whether an item can be physically equipped by a Priest
@@ -770,7 +796,7 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
         return false
     end
 
-    -- Class restriction check (e.g. "Classes: Druid, Shaman, Paladin")
+    -- Class restriction check (e.g. "Classes: Druid, Shaman, Paladin", "职业：德鲁伊、萨满祭司")
     if itemData.restrictedClasses and not itemData.restrictedClasses["PRIEST"] then
         return false
     end
@@ -787,7 +813,7 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
 
         -- Weapon slots CANNOT be Swords, Axes, 2H Maces, Polearms, Bows, Guns, Shields
         if slot == "Mainhand" or slot == "Twohand" or slot == "Offhand" or slot == "Wand" then
-            if PRIEST_PROHIBITED_WEAPONS[subType] or subType == "Shield" then
+            if PRIEST_PROHIBITED_WEAPONS[subType] or subType == "Shield" or subType == "盾牌" or subType == "Щит" or subType == "Schild" or subType == "Bouclier" then
                 return false
             end
         end
@@ -801,13 +827,13 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
             return false
         end
 
-        if itemType == "Armor" then
+        if itemType == "Armor" or itemType == "护甲" or itemType == "Доспехи" or itemType == "Rüstung" or itemType == "Armure" then
             if slot ~= "Ring" and slot ~= "Neck" and slot ~= "Trinket" and slot ~= "Back" then
                 if itemSubType and PRIEST_PROHIBITED_ARMOR[itemSubType] then
                     return false
                 end
             end
-        elseif itemType == "Weapon" then
+        elseif itemType == "Weapon" or itemType == "武器" or itemType == "Оружие" or itemType == "Waffe" or itemType == "Arme" then
             if itemSubType and PRIEST_PROHIBITED_WEAPONS[itemSubType] then
                 return false
             end
@@ -817,35 +843,34 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     return true
 end
 
--- Known Priest Set Bonus Breakpoints & EP Values
+-- Multilingual Set Bonuses Breakpoint Table
 UA.SET_BONUSES = {
-    ["Vestments of Transcendence"] = {
-        [3] = { ep = 25, desc = "3-Piece Bonus: +15% Mana Regen while casting" },
-    },
-    ["Gewänder der Transzendenz"] = {
-        [3] = { ep = 25, desc = "3-Set: +15% Manaregeneration während des Zauberns" },
-    },
-    ["Habits de transcendance"] = {
-        [3] = { ep = 25, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" },
-    },
-    ["Vestments of Prophecy"] = {
-        [3] = { ep = 15, desc = "3-Piece Bonus: -0.1s Flash Heal cast time" },
-    },
-    ["Gewänder der Prophezeiung"] = {
-        [3] = { ep = 15, desc = "3-Set: -0.1s Zauberzeit von Blitzheilung" },
-    },
-    ["Habits de prophétie"] = {
-        [3] = { ep = 15, desc = "Bonus 3 pièces: -0.1s temps d'incantation de Soins rapides" },
-    },
-    ["Major Mojo Infusion"] = {
-        [2] = { ep = 21, desc = "2-Piece Set Bonus: +21 Healing & Spell Damage" },
-    },
-    ["The Postulant's Regalia"] = {
-        [2] = { ep = 20, desc = "2-Piece Set Bonus: +20 Healing" },
-    },
-    ["Confessor's Raiment"] = {
-        [2] = { ep = 22, desc = "2-Piece Set Bonus: +22 Spell Power" },
-    },
+    -- Transcendence (T2)
+    ["Vestments of Transcendence"] = { [3] = { ep = 25, desc = "3-Piece Bonus: +15% Mana Regen while casting" } },
+    ["卓越法衣"] = { [3] = { ep = 25, desc = "3件套效果: 施法时保持15%的法力回复速度" } },
+    ["Одеяния Превосходства"] = { [3] = { ep = 25, desc = "3 предмета: +15% к скорости восполнения маны во время произнесения заклинаний" } },
+    ["Gewänder der Transzendenz"] = { [3] = { ep = 25, desc = "3-Set: +15% Manaregeneration während des Zauberns" } },
+    ["Habits de transcendance"] = { [3] = { ep = 25, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" } },
+
+    -- Prophecy (T1)
+    ["Vestments of Prophecy"] = { [3] = { ep = 15, desc = "3-Piece Bonus: -0.1s Flash Heal cast time" } },
+    ["预言法衣"] = { [3] = { ep = 15, desc = "3件套效果: 快速治疗施法时间减少0.1秒" } },
+    ["Одеяния Пророчества"] = { [3] = { ep = 15, desc = "3 предмета: -0.1 сек к времени применения Быстрого исцеления" } },
+    ["Gewänder der Prophezeiung"] = { [3] = { ep = 15, desc = "3-Set: -0.1s Zauberzeit von Blitzheilung" } },
+    ["Habits de prophétie"] = { [3] = { ep = 15, desc = "Bonus 3 pièces: -0.1s temps d'incantation de Soins rapides" } },
+
+    -- Major Mojo Infusion (ZG Rings)
+    ["Major Mojo Infusion"] = { [2] = { ep = 21, desc = "2-Piece Set Bonus: +21 Healing & Spell Damage" } },
+    ["主要巨魔灌魔"] = { [2] = { ep = 21, desc = "2件套效果: +21 治疗与法术伤害" } },
+    ["Великое насыщение моджо"] = { [2] = { ep = 21, desc = "2 предмета: +21 к урону и исцелению от заклинаний" } },
+    ["Große Mojo-Infusion"] = { [2] = { ep = 21, desc = "2-Set: +21 Heilung und Zauberschaden" } },
+    ["Infusion de mojo majeure"] = { [2] = { ep = 21, desc = "Bonus 2 pièces: +21 aux soins et dégâts des sorts" } },
+
+    -- Turtle WoW Sets
+    ["The Postulant's Regalia"] = { [2] = { ep = 20, desc = "2-Piece Set Bonus: +20 Healing" } },
+    ["神圣法衣"] = { [2] = { ep = 20, desc = "2件套效果: +20 治疗效果" } },
+    ["Confessor's Raiment"] = { [2] = { ep = 22, desc = "2-Piece Set Bonus: +22 Spell Power" } },
+    ["忏悔者的法衣"] = { [2] = { ep = 22, desc = "2件套效果: +22 法术强度" } },
 }
 
 -- Count how many pieces of a set are currently equipped on the player
@@ -929,11 +954,11 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         result.isUpgrade = false
         result.roleMismatch = true
         if itemData.restrictedClasses and not itemData.restrictedClasses["PRIEST"] then
-            result.reason = "Class restriction (Not for Priest)"
+            result.reason = L["CLASS_RESTRICTION"]
         elseif itemData.subType and itemData.subType ~= "" then
-            result.reason = "Cannot equip " .. itemData.subType .. " (Priest restriction)"
+            result.reason = format(L["CANNOT_EQUIP_SUBTYPE"], itemData.subType)
         else
-            result.reason = "Cannot equip this item (Priest restriction)"
+            result.reason = L["CANNOT_EQUIP_GENERAL"]
         end
         return result
     end
@@ -943,7 +968,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         result.currentScore = newScore
         result.currentItemName = itemData.name
         result.delta = 0
-        result.reason = format("Currently Equipped (%d EP)", newScore)
+        result.reason = format(L["CURRENTLY_EQUIPPED_REASON"], newScore)
         return result
     end
 
@@ -954,7 +979,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         if itemData.role and itemData.role ~= "HEAL" then
             result.roleMismatch = true
             result.isUpgrade = false
-            result.reason = "Non-healer trinket (" .. itemData.role .. ")"
+            result.reason = format(L["NON_HEALER_TRINKET"], itemData.role)
             return result
         end
 
@@ -977,10 +1002,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         if newScore > minScore then
             result.isUpgrade = true
-            result.reason = format("Trinket Upgrade over %s (+%d EP, %d -> %d)", replaceSlot, result.delta, minScore, newScore)
+            result.reason = format(L["TRINKET_UPGRADE"], replaceSlot, result.delta, minScore, newScore)
         else
             result.isUpgrade = false
-            result.reason = format("Trinket Downgrade vs %s (%d vs %d EP)", replaceSlot, newScore, minScore)
+            result.reason = format(L["TRINKET_DOWNGRADE"], replaceSlot, newScore, minScore)
         end
         return result
     end
@@ -1008,10 +1033,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         if newScore > minScore then
             result.isUpgrade = true
-            result.reason = format("Ring Upgrade over %s (+%d EP, %d -> %d)", replaceSlot, result.delta, minScore, newScore)
+            result.reason = format(L["RING_UPGRADE"], replaceSlot, result.delta, minScore, newScore)
         else
             result.isUpgrade = false
-            result.reason = format("Ring Downgrade vs %s (%d vs %d EP)", replaceSlot, newScore, minScore)
+            result.reason = format(L["RING_DOWNGRADE"], replaceSlot, newScore, minScore)
         end
         return result
     end
@@ -1038,10 +1063,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         if newScore > currentSetScore then
             result.isUpgrade = true
-            result.reason = format("2H Upgrade over MH+OH Set (+%d EP: %d vs %d)", result.delta, newScore, currentSetScore)
+            result.reason = format(L["TWOHAND_UPGRADE"], result.delta, newScore, currentSetScore)
         else
             result.isUpgrade = false
-            result.reason = format("2H Downgrade vs MH+OH Set (%d vs %d EP)", newScore, currentSetScore)
+            result.reason = format(L["TWOHAND_DOWNGRADE"], newScore, currentSetScore)
         end
         return result
     end
@@ -1065,10 +1090,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
             if projectedScore > current2HScore then
                 result.isUpgrade = true
-                result.reason = format("1H Upgrade over 2H Staff (+%d EP: %d vs %d)", result.delta, projectedScore, current2HScore)
+                result.reason = format(L["MAINHAND_2H_UPGRADE"], result.delta, projectedScore, current2HScore)
             else
                 result.isUpgrade = false
-                result.reason = format("1H Downgrade vs 2H Staff (%d vs %d EP)", projectedScore, current2HScore)
+                result.reason = format(L["MAINHAND_2H_DOWNGRADE"], projectedScore, current2HScore)
             end
             return result
         else
@@ -1083,10 +1108,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
             if newScore > currentScore then
                 result.isUpgrade = true
-                result.reason = format("Mainhand Upgrade (+%d EP: %d -> %d)", result.delta, currentScore, newScore)
+                result.reason = format(L["MAINHAND_UPGRADE"], result.delta, currentScore, newScore)
             else
                 result.isUpgrade = false
-                result.reason = format("Mainhand Downgrade (%d vs %d EP)", newScore, currentScore)
+                result.reason = format(L["MAINHAND_DOWNGRADE"], newScore, currentScore)
             end
             return result
         end
@@ -1105,10 +1130,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         if newScore > currentScore then
             result.isUpgrade = true
-            result.reason = format("Offhand Upgrade (+%d EP: %d -> %d)", result.delta, currentScore, newScore)
+            result.reason = format(L["OFFHAND_UPGRADE"], result.delta, currentScore, newScore)
         else
             result.isUpgrade = false
-            result.reason = format("Offhand Downgrade (%d vs %d EP)", newScore, currentScore)
+            result.reason = format(L["OFFHAND_DOWNGRADE"], newScore, currentScore)
         end
         return result
     end
@@ -1120,10 +1145,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     if not currentItem then
         result.replaceSlot = slot
         result.currentScore = 0
-        result.currentItemName = "[Empty Slot]"
+        result.currentItemName = L["EMPTY_SLOT"]
         result.delta = newScore
         result.isUpgrade = (newScore > 0)
-        result.reason = format("Slot %s is empty - Free Upgrade (+%d EP)", slot, newScore)
+        result.reason = format(L["EMPTY_SLOT_UPGRADE"], slot, newScore)
         return result
     end
 
@@ -1138,10 +1163,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
     if newScore > currentScore then
         result.isUpgrade = true
-        result.reason = format("Score: %d -> %d (+%d EP)", currentScore, newScore, result.delta)
+        result.reason = format(L["SCORE_UPGRADE"], currentScore, newScore, result.delta)
     else
         result.isUpgrade = false
-        result.reason = format("Downgrade: %d vs %d EP", newScore, currentScore)
+        result.reason = format(L["SCORE_DOWNGRADE"], newScore, currentScore)
     end
     return result
 end
@@ -1175,7 +1200,7 @@ function UA.FormatItemInfo(itemID, itemLink)
         table.insert(lines, table.concat(statParts, "  "))
     end
 
-    if data.drop then table.insert(lines, format("Source: %s", data.drop)) end
+    if data.drop then table.insert(lines, format(L["TOOLTIP_SOURCE"] .. " %s", data.drop)) end
     if data.note then table.insert(lines, format("|cffffd100%s|r", data.note)) end
 
     return table.concat(lines, "\n")
@@ -1208,7 +1233,7 @@ alertFrame:SetClampedToScreen(true)
 -- Title
 local title = alertFrame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 title:SetPoint("TOP", alertFrame, "TOP", 0, -10)
-title:SetText("UPGRADE ALERT!")
+title:SetText(L["UPGRADE_ALERT_TITLE"])
 title:SetTextColor(1, 0.82, 0, 1)
 title:SetJustifyH("CENTER")
 
@@ -1264,12 +1289,13 @@ function UA.ShowAlert(itemID, itemLink, texture)
         itemIcon:SetTexture("Interface/Icons/INV_Misc_QuestionMark")
     end
 
+    title:SetText(L["UPGRADE_ALERT_TITLE"])
     itemNameText:SetText(format("|cffa335ee%s|r", displayName))
-    sourceText:SetText(format("Source: %s", data.drop or "Dungeon / Raid Drop"))
+    sourceText:SetText(format(L["TOOLTIP_SOURCE"] .. " %s", data.drop or "Dungeon / Raid Drop"))
 
     local isUpgrade, reason = UA.IsUpgrade(itemID, itemLink)
     if isUpgrade then
-        statsText:SetText(format("|cff00ff00UPGRADE!|r %s", reason))
+        statsText:SetText(format("|cff00ff00%s|r %s", L["UPGRADE_DETECTED"], reason))
     else
         statsText:SetText(format("|cffff4444%s|r", reason))
     end
@@ -1301,7 +1327,7 @@ function UA.ShowAlert(itemID, itemLink, texture)
     PlaySound("QUESTADVENTURECOMPLETE")
 
     if isUpgrade then
-        UA_Print(format("|cff00ff00UPGRADE ALERT:|r |cffa335ee%s|r - %s", displayName, reason))
+        UA_Print(format("|cff00ff00%s|r |cffa335ee%s|r - %s", L["UPGRADE_ALERT_CHAT"], displayName, reason))
     end
 
     return true
@@ -1346,37 +1372,37 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
 
     if comp.isEquipped then
         tooltip:AddLine(" ")
-        tooltip:AddLine(format("|cffffd100[PriestBiS]|r |cffffffffCurrently Equipped:|r |cffffd100%d EP|r (|cffa335ee%s|r)", comp.newScore, comp.slot), 0.9, 0.9, 0.9)
+        tooltip:AddLine(format(L["TOOLTIP_EQUIPPED"], comp.newScore, comp.slot), 0.9, 0.9, 0.9)
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
             tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ffSource:|r %s", comp.drop), 0.6, 0.8, 1)
+            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100Note:|r %s", comp.note), 1, 0.82, 0)
+            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     elseif comp.isUpgrade then
         tooltip:AddLine(" ")
         local pctStr = comp.pct and format(" / +%.1f%%", comp.pct) or ""
-        tooltip:AddLine(format("|cff00ff00[PriestBiS] UPGRADE (+%d EP%s)|r", comp.delta, pctStr), 0, 1, 0)
+        tooltip:AddLine(format(L["TOOLTIP_UPGRADE"], comp.delta, pctStr), 0, 1, 0)
         
         local replaceTarget = comp.currentItemName or comp.replaceSlot or comp.slot
-        tooltip:AddLine(format("  |cffffffffReplaces:|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, comp.newScore), 0.9, 0.9, 0.9)
+        tooltip:AddLine(format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, comp.newScore), 0.9, 0.9, 0.9)
         
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
             tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
         end
         if comp.setBonusDesc then
-            tooltip:AddLine(format("  |cff00ff00Set Bonus Active:|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
+            tooltip:AddLine(format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ffSource:|r %s", comp.drop), 0.6, 0.8, 1)
+            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100Note:|r %s", comp.note), 1, 0.82, 0)
+            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     else
         local db = PriestBiSDB
@@ -1387,25 +1413,25 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
 
         tooltip:AddLine(" ")
         if comp.roleMismatch then
-            tooltip:AddLine(format("|cffff6666[PriestBiS] %s|r", comp.reason), 1, 0.4, 0.4)
+            tooltip:AddLine(format(L["TOOLTIP_ROLE_MISMATCH"], comp.reason), 1, 0.4, 0.4)
         elseif comp.delta == 0 then
-            tooltip:AddLine(format("|cffaaaaaa[PriestBiS] Sidegrade (Equal %d EP vs %s)|r", comp.newScore, comp.currentItemName or comp.slot), 0.7, 0.7, 0.7)
+            tooltip:AddLine(format(L["TOOLTIP_SIDEGRADE"], comp.newScore, comp.currentItemName or comp.slot), 0.7, 0.7, 0.7)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
             if breakdown and breakdown ~= "" then
                 tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
             end
         else
-            tooltip:AddLine(format("|cff888888[PriestBiS]|r |cffff6666Downgrade (%d vs %d EP, %s)|r", comp.newScore, comp.currentScore, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
+            tooltip:AddLine(format(L["TOOLTIP_DOWNGRADE"], comp.newScore, comp.currentScore, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
             if breakdown and breakdown ~= "" then
                 tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
             end
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ffSource:|r %s", comp.drop), 0.6, 0.8, 1)
+            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100Note:|r %s", comp.note), 1, 0.82, 0)
+            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     end
 
@@ -1644,14 +1670,14 @@ local function OnMouseOverUnit()
 
         if upgradeCount > 0 then
             UIErrorsFrame:AddMessage(
-                format("|cffffd100[PriestBiS]|r %s drops %d upgrade(s) for your spec!", bossName, upgradeCount),
+                format("|cffffd100[PriestBiS]|r " .. L["BOSS_DROPS_ALERT"], bossName, upgradeCount),
                 1.0, 1.0, 0.0, 1.0
             )
         end
     end
 end
 
--- Dynamically synchronize Holy Priest stat weights with active character talent points
+-- Dynamically synchronize Holy Priest stat weights with active character talent points across all locales
 function UA.UpdateDynamicTalentWeights()
     if not GetNumTalents or not GetTalentInfo then return end
     local _, playerClass = UnitClass("player")
@@ -1665,10 +1691,12 @@ function UA.UpdateDynamicTalentWeights()
         local numTalents = GetNumTalents(tabIndex) or 0
         for tIndex = 1, numTalents do
             local name, _, _, _, currentRank = GetTalentInfo(tabIndex, tIndex)
-            if name == "Spiritual Guidance" or name == "Geistige Führung" or name == "Directives spirituelles" then
-                sgRank = currentRank or 0
-            elseif name == "Meditation" then
-                medRank = currentRank or 0
+            if name then
+                if name == "Spiritual Guidance" or name == "精神指引" or name == "Духовное направление" or name == "Geistige Führung" or name == "Directives spirituelles" then
+                    sgRank = currentRank or 0
+                elseif name == "Meditation" or name == "冥想" or name == "Медитация" or name == "Méditation" then
+                    medRank = currentRank or 0
+                end
             end
         end
     end
@@ -1701,11 +1729,11 @@ function UA.HookLootBlare()
                     local comp = UA.GetUpgradeComparison(itemID, currentLink)
                     if comp and comp.isUpgrade then
                         UA.ShowAlert(itemID, currentLink)
-                        UA_Print(format("|cffffd100[LootBlare Roll Alert]|r |cff00ff00%s|r is an |cff00ff00UPGRADE (+%d EP / +%.1f%%)|r! Roll now!", comp.name or "Item", comp.diff or 0, comp.pct or 0))
+                        UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["LOOTBLARE_ROLL_ALERT"], comp.newItemName or "Item", comp.delta or 0, comp.pct or 0))
                         if self.name and self.name.GetText and self.name.SetText then
                             local curText = self.name:GetText() or ""
                             if not string.find(curText, "%[UPGRADE") then
-                                self.name:SetText(curText .. format("\n|cff00ff00[UPGRADE +%d EP]|r", comp.diff or 0))
+                                self.name:SetText(curText .. format("\n|cff00ff00[UPGRADE +%d EP]|r", comp.delta or 0))
                             end
                         end
                     end
@@ -1715,12 +1743,37 @@ function UA.HookLootBlare()
     end
 end
 
--- Check raid warning and party/raid chat for active roll announcements
+-- Check raid warning and party/raid chat for active roll announcements across all locales
 function UA.CheckRaidRollMessage(message)
     if not message then return end
-    -- Check if message is a roll call (e.g. "Roll for [Item]", "Roll MS", "Roll SR")
     local lower = string.lower(message)
-    local isRollCall = string.find(lower, "roll") or string.find(lower, "wuerfeln") or string.find(lower, "rouler")
+    local isRollCall = false
+
+    -- Check active locale keywords first
+    local activeLoc = PriestBiS.clientLocale or "enUS"
+    if PriestBiS.Patterns[activeLoc] and PriestBiS.Patterns[activeLoc].ROLL_KEYWORDS then
+        for _, kw in ipairs(PriestBiS.Patterns[activeLoc].ROLL_KEYWORDS) do
+            if string.find(lower, string.lower(kw)) then
+                isRollCall = true
+                break
+            end
+        end
+    end
+
+    if not isRollCall then
+        for _, pGroup in pairs(PriestBiS.Patterns) do
+            if pGroup.ROLL_KEYWORDS then
+                for _, kw in ipairs(pGroup.ROLL_KEYWORDS) do
+                    if string.find(lower, string.lower(kw)) then
+                        isRollCall = true
+                        break
+                    end
+                end
+            end
+            if isRollCall then break end
+        end
+    end
+
     if isRollCall then
         for itemLink in string.gfind(message, "(|c%x+|Hitem:[%d:-]+|h%[[^%]]+%]h|r)") do
             local itemID = UA.GetItemIDFromLink(itemLink)
@@ -1728,7 +1781,7 @@ function UA.CheckRaidRollMessage(message)
                 local comp = UA.GetUpgradeComparison(itemID, itemLink)
                 if comp and comp.isUpgrade then
                     UA.ShowAlert(itemID, itemLink)
-                    UA_Print(format("|cffffd100[Raid Roll Alert]|r %s is an |cff00ff00UPGRADE (+%d EP / +%.1f%%)|r!", itemLink, comp.diff or 0, comp.pct or 0))
+                    UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["ROLL_ALERT_TITLE"], itemLink, comp.delta or 0, comp.pct or 0))
                 end
             end
         end
@@ -1760,6 +1813,10 @@ eventFrame:SetScript("OnEvent", function()
         UA.HookAllTooltips()
         UA.HookLootBlare()
         UA.UpdateDynamicTalentWeights()
+        if not UA.hasAnnouncedLoaded then
+            UA.hasAnnouncedLoaded = true
+            UA_Print(L["SLASH_VERSION"] .. " loaded. Type |cffffd100/pbis|r for commands.")
+        end
     elseif event == "CHARACTER_POINTS_CHANGED" or event == "SPELLS_CHANGED" then
         UA.UpdateDynamicTalentWeights()
     elseif event == "LOOT_OPENED" then
@@ -1798,12 +1855,12 @@ local function PriestBiS_SlashHandler(msg)
         end
     elseif cmd == "tooltip" or cmd == "tooltips" then
         db.tooltipAlerts = not db.tooltipAlerts
-        UA_Print("Tooltip Upgrade Alerts: " .. (db.tooltipAlerts and "|cff00ff00ENABLED|r" or "|cffff4444DISABLED|r"))
+        UA_Print(L["TOOLTIP_ALERTS_STATUS"] .. (db.tooltipAlerts and L["ENABLED"] or L["DISABLED"]))
     elseif cmd == "downgrades" or cmd == "downgrade" then
         db.showDowngrades = not db.showDowngrades
-        UA_Print("Tooltip Downgrade/Sidegrade Info: " .. (db.showDowngrades and "|cff00ff00ENABLED|r" or "|cffff4444DISABLED|r"))
+        UA_Print(L["TOOLTIP_DOWNGRADES_STATUS"] .. (db.showDowngrades and L["ENABLED"] or L["DISABLED"]))
     elseif cmd == "db" or cmd == "database" then
-        UA_Print("Curated High-Priority Upgrades:")
+        UA_Print(L["CURATED_UPGRADES_TITLE"])
         for id, meta in pairs(UA.ITEM_METADATA) do
             if (meta.priority or 99) <= 10 then
                 local itemData = UA.GetItemData(id)
@@ -1813,26 +1870,26 @@ local function PriestBiS_SlashHandler(msg)
             end
         end
     elseif cmd == "gear" then
-        UA_Print("Currently Tracked Gear (Live Query):")
+        UA_Print(L["TRACKED_GEAR_TITLE"])
         for _, slotName in ipairs(UA.GEAR_DISPLAY_ORDER) do
             local data = UA.GetEquippedItemData(slotName)
             if data then
                 UA_Print(format("  %s: |cffa335ee%s|r (%d EP)", slotName, data.name or "Equipped", UA.GetItemScore(data)))
             else
-                UA_Print(format("  %s: |cff888888[Empty]|r", slotName))
+                UA_Print(format("  %s: %s", slotName, L["EMPTY_LABEL"]))
             end
         end
     elseif cmd == "help" then
-        UA_Print("Commands (/pbis or /bis):")
-        UA_Print("  /pbis gear       - Show current equipped gear and EP scores")
-        UA_Print("  /pbis toggle     - Test/Show popup alert frame")
-        UA_Print("  /pbis tooltip    - Toggle tooltip upgrade badges on/off")
-        UA_Print("  /pbis downgrades - Toggle tooltip downgrade/sidegrade info on/off")
-        UA_Print("  /pbis db         - List curated priority upgrade database")
-        UA_Print("  /pbis help       - Show this help message")
+        UA_Print(L["SLASH_HEADER"])
+        UA_Print(L["SLASH_GEAR"])
+        UA_Print(L["SLASH_TOGGLE"])
+        UA_Print(L["SLASH_TOOLTIP"])
+        UA_Print(L["SLASH_DOWNGRADES"])
+        UA_Print(L["SLASH_DB"])
+        UA_Print(L["SLASH_HELP"])
     else
-        UA_Print("v1.0.0 by |cffffffffprodigeomix|r (Carbon) - Real-time upgrade monitor for Holy & Discipline Priests.")
-        UA_Print("Type |cff00ff00/pbis help|r or |cff00ff00/bis gear|r for commands.")
+        UA_Print(L["SLASH_VERSION"])
+        UA_Print(L["SLASH_HELP_PROMPT"])
     end
 end
 

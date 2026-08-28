@@ -1,9 +1,24 @@
 ## Interface: 11200
 ## Title: |cffffd100PriestBiS|r - Priest Loot & Upgrade Assistant
+## Title-zhCN: |cffffd100PriestBiS|r - 牧师装备与提升助手
+## Title-ruRU: |cffffd100PriestBiS|r - Помощник по экипировке жреца
+## Title-deDE: |cffffd100PriestBiS|r - Priester Beute- & Upgrade-Assistent
+## Title-frFR: |cffffd100PriestBiS|r - Assistant d'équipement et d'amélioration Prêtre
 ## Notes: Real-time dynamic gear upgrade detection, healing EP scoring, talent sync, and raid roll alerts for Holy & Discipline Priests.
+## Notes-zhCN: 实时动态装备提升检测、治疗EP评分、天赋同步与团队Roll点警报（神圣与戒律牧师）。
+## Notes-ruRU: Динамическое отслеживание улучшений экипировки, EP-оценка исцеления, синхронизация талантов и оповещения о ролле для жрецов.
+## Notes-deDE: Echtzeit-Upgrade-Erkennung, Heilungs-EP-Bewertung, Talentsynchronisation und Raid-Würfelalarme für Heilig- & Disziplin-Priester.
+## Notes-frFR: Détection d'amélioration d'équipement en temps réel, score EP de soin, synchronisation des talents et alertes de tirage en raid.
 ## Author: prodigeomix (Carbon)
-## Version: 1.0.0
+## Version: 1.1.0
 ## SavedVariablesPerCharacter: PriestBiSDB
 ## OptionalDeps: AtlasLoot, pfQuest, pfQuest-turtle, BetterCharacterStats, LootBlare
+
+Locales\Localization.lua
+Locales\Localization.enUS.lua
+Locales\Localization.zhCN.lua
+Locales\Localization.ruRU.lua
+Locales\Localization.deDE.lua
+Locales\Localization.frFR.lua
 
 PriestBiS.lua
