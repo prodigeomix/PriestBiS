@@ -6,4 +6,4 @@
 ## SavedVariablesPerCharacter: PriestBiSDB, UpgradeAlertDB
 ## OptionalDeps: AtlasLoot, pfQuest, pfQuest-turtle, BetterCharacterStats, LootBlare
 
-UpgradeAlert.lua
+PriestBiS.lua

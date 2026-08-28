@@ -19,4 +19,4 @@ jobs:
         luaVersion: "5.1"
 
     - name: Run Test Suite
-      run: lua tools/test_upgrade_alert.lua
+      run: lua tools/test_priest_bis.lua

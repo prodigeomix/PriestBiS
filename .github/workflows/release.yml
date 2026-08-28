@@ -14,7 +14,7 @@ jobs:
     - name: Package PriestBiS Addon
       run: |
         mkdir -p PriestBiS
-        cp UpgradeAlert.lua PriestBiS/
+        cp PriestBiS.lua PriestBiS/
         cp PriestBiS.toc PriestBiS/
         cp UpgradeAlert.toc PriestBiS/
         cp LICENSE PriestBiS/

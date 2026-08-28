@@ -178,8 +178,8 @@ _G.UIErrorsFrame = { AddMessage = function(...) end }
 _G.DEFAULT_CHAT_FRAME = { AddMessage = function(self, msg) print("[CHAT] " .. tostring(msg)) end }
 _G.SlashCmdList = {}
 
--- Load UpgradeAlert.lua
-dofile("UpgradeAlert.lua")
+-- Load PriestBiS.lua
+dofile("PriestBiS.lua")
 
 print("--- Testing Upgrade Scoring ---")
 local rob = UA.GetItemData(16923) -- Robes of Transcendence (59 heal, 27 int, 16 spi, 17 stam)
