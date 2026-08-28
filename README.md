@@ -88,6 +88,8 @@ Use `/pbis`, `/bis`, or `/priestbis` in-game:
 
 ---
 
-## 📜 Credits & License
-Developed by [prodigeomix](https://github.com/prodigeomix) (Carbon) for the Classic 1.12.1 and Turtle WoW Priest community.  
-Released under the [MIT License](LICENSE).
+## 👤 Author & Creator
+
+* **Original Creator & Author:** **[prodigeomix](https://github.com/prodigeomix)** (In-Game: `Carbon`)
+* **Target Platforms:** Vanilla WoW 1.12.1 & Turtle WoW 1.18.1
+* **License:** [MIT License](LICENSE) (c) 2026 prodigeomix (Carbon) & PriestBiS Contributors

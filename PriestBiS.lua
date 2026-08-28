@@ -1,11 +1,13 @@
--- PriestBiS.lua (UpgradeAlert)
+-- PriestBiS.lua
 -- Real-time dynamic gear upgrade detection, healing EP scoring, talent sync, and raid roll alerts for Holy & Discipline Priests.
 -- Author: prodigeomix (Carbon) (Optimized for Vanilla 1.12.1 / Turtle WoW 1.18.1)
 -- Strict Lua 5.0 Compliance
 
-local UA = {}
-_G.UA = UA
-_G.PriestBiS = UA
+local PriestBiS = {}
+local PB = PriestBiS
+local UA = PriestBiS
+_G.PriestBiS = PriestBiS
+_G.UA = PriestBiS
 
 local format = string.format
 local tostring = tostring
@@ -16,12 +18,13 @@ local getglobal = getglobal or function(name) return _G[name] end
 -- 1. COMPATIBILITY SHIM & LOGGING (Vanilla 1.12.1)
 -- ================================================
 
-local function UA_Print(msg)
+local function PB_Print(msg)
     if DEFAULT_CHAT_FRAME then
         DEFAULT_CHAT_FRAME:AddMessage("|cffffd100[PriestBiS]|r " .. tostring(msg))
     end
 end
-UA.Print = UA_Print
+PriestBiS.Print = PB_Print
+local UA_Print = PB_Print
 
 -- Global print fallback for 1.12.1 if missing
 if not _G.print then
@@ -40,11 +43,6 @@ end
 -- 2. STAT WEIGHTS & EQUIVALENCE POINTS (EP)
 -- ================================================
 
--- Holy Priest Stat Weights for Turtle WoW 1.18.1
--- Note: PoH has 0.0 +healing coefficient on Turtle 1.18.1.
--- Holy Priests rely on Flash Heal, Greater Heal R1, Heal R2-4, and Renew.
--- Spiritual Guidance converts 25% of Spirit into +Healing.
--- Meditation grants 15% mana regen while casting.
 UA.STAT_WEIGHTS = {
     healing = 1.0,         -- Baseline throughput
     spi = 0.70,            -- 0.25 (Spiritual Guidance) + 0.45 (Meditation FSR regen)
@@ -56,7 +54,6 @@ UA.STAT_WEIGHTS = {
     armor = 0.0,
 }
 
--- Slot ID mappings for Vanilla 1.12.1 inventory
 UA.SLOT_IDS = {
     Head = 1, Neck = 2, Shoulder = 3, Shirt = 4, Chest = 5,
     Belt = 6, Legs = 7, Boots = 8, Wrists = 9, Hands = 10,
@@ -64,20 +61,17 @@ UA.SLOT_IDS = {
     Back = 15, Mainhand = 16, Offhand = 17, Ranged = 18, Wand = 18, Tabard = 19
 }
 
--- Ordered slot list for character sheet display
 UA.GEAR_DISPLAY_ORDER = {
-    "Head", "Neck", "Shoulder", "Back", "Chest", "Wrists", "Hands",
-    "Belt", "Legs", "Boots", "Ring1", "Ring2", "Trinket1", "Trinket2",
+    "Head", "Neck", "Shoulder", "Back", "Chest",
+    "Wrists", "Hands", "Belt", "Legs", "Boots",
+    "Ring1", "Ring2", "Trinket1", "Trinket2",
     "Mainhand", "Offhand", "Wand"
 }
 
 -- ================================================
--- 3. CURATED ITEM METADATA & SPECIAL OVERRIDES
+-- 3. CURATED ITEM METADATA (Trinkets & Special Drops)
 -- ================================================
 
--- Curated item metadata: EP overrides for on-use trinkets, role filters, drop sources, and raid notes.
--- Note: All item stats (Healing, Spirit, Int, MP5, Crit, Stamina) are dynamically read directly
--- from the game client tooltips at runtime so they are 100% accurate and never desynchronized.
 UA.ITEM_METADATA = {
     -- === TRINKETS (Curated with Tier, Role and On-Use EP Overrides) ===
     [19958] = { name = "Hazza'rah's Charm of Healing", role = "HEAL", tier = "S", ep_override = 120, drop = "ZG: Edge of Madness (14%)", priority = 1, note = "BiS: -40% Greater Heal cast time & -5% mana cost for 15s" },
@@ -1839,7 +1833,7 @@ local function PriestBiS_SlashHandler(msg)
         UA_Print("  /pbis db         - List curated priority upgrade database")
         UA_Print("  /pbis help       - Show this help message")
     else
-        UA_Print("Real-time loot & upgrade monitor for Holy & Discipline Priests.")
+        UA_Print("v1.0.0 by |cffffffffprodigeomix|r (Carbon) - Real-time upgrade monitor for Holy & Discipline Priests.")
         UA_Print("Type |cff00ff00/pbis help|r or |cff00ff00/bis gear|r for commands.")
     end
 end
