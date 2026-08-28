@@ -175,7 +175,7 @@ UA.ITEM_METADATA = {
     [19132] = { drop = "World: Azuregos (10%)", priority = 2, note = "Epic helm - high +heal" },
     [18723] = { drop = "Strat: Ramstein", priority = 5, note = "Epic neck" },
     [19820] = { drop = "Strat: Archivist Galford", priority = 10, note = "Epic healing offhand" },
-    [22406] = { drop = "Quest / Dungeon", priority = 10, note = "Epic 1H healing mace" },
+    [22406] = { drop = "Scholomance / Dungeon Quest", priority = 10, note = "Rare 2H healing staff (+55 Heal, +15 Int, +15 Spi)" },
     [18510] = { drop = "Crafted / Leatherworking", priority = 5, note = "Epic healing cloak" },
     [13346] = { drop = "Strat: Baron Rivendare", priority = 10, note = "Top pre-raid healing chest" },
     [22247] = { drop = "Dungeon drop", priority = 15, note = "Healing boots" },
@@ -1873,9 +1873,15 @@ local function PriestBiS_SlashHandler(msg)
         end
     elseif cmd == "gear" then
         UA_Print(L["TRACKED_GEAR_TITLE"])
+        local mhData = UA.GetEquippedItemData("Mainhand")
+        local is2H = mhData and (mhData.slot == "Twohand" or mhData.slot == "Staff")
         for _, slotName in ipairs(UA.GEAR_DISPLAY_ORDER) do
             local data = UA.GetEquippedItemData(slotName)
-            if data then
+            if slotName == "Mainhand" and is2H then
+                UA_Print(format("  Twohand: |cffa335ee%s|r (%d EP)", data and data.name or "Equipped", data and UA.GetItemScore(data) or 0))
+            elseif slotName == "Offhand" and is2H then
+                UA_Print("  Offhand: |cff888888[N/A - 2H Equipped]|r")
+            elseif data then
                 UA_Print(format("  %s: |cffa335ee%s|r (%d EP)", slotName, data.name or "Equipped", UA.GetItemScore(data)))
             else
                 UA_Print(format("  %s: %s", slotName, L["EMPTY_LABEL"]))
