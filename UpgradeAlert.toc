@@ -1,0 +1,9 @@
+## Interface: 11200
+## Title: UpgradeAlert
+## Title: UpgradeAlert - |cffaad3ffZG/Kara Loot Monitor|r
+## Notes: Alerts when items dropped by ZG/Kara bosses are upgrades for your spec
+## Author: Carbon
+## Version: 1.0.0
+## SavedVariablesPerCharacter: UpgradeAlertDB
+
+UpgradeAlert.lua

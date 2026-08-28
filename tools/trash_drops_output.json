@@ -1,0 +1,329 @@
+{
+  "MC_MCTrashMobs": {
+    "table_name": "MCTrashMobs",
+    "instance": "MC",
+    "total_items": 28,
+    "priest_appropriate": 3,
+    "items": [
+      {
+        "id": 16817,
+        "name": "Girdle of Prophecy",
+        "ds": "\"=ds=#s10#, #a1# =q9=#c5#\"",
+        "drop_rate": "0.3%",
+        "slot": "Waist",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": true,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 16819,
+        "name": "Vambraces of Prophecy",
+        "ds": "\"=ds=#s8#, #a1# =q9=#c5#\"",
+        "drop_rate": "0.3%",
+        "slot": "Wrists",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": true,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 81261,
+        "name": "Boots of Blistering Flames",
+        "ds": "\"=ds=#s12#, #a1#\"",
+        "drop_rate": "0.2%",
+        "slot": "Boots",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      }
+    ]
+  },
+  "BWL_BWLTrashMobs": {
+    "table_name": "BWLTrashMobs",
+    "instance": "BWL",
+    "total_items": 11,
+    "priest_appropriate": 7,
+    "items": [
+      {
+        "id": 19436,
+        "name": "Cloak of Draconic Might",
+        "ds": "\"=ds=#s4#\"",
+        "drop_rate": "4%",
+        "slot": "Back",
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": true,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19437,
+        "name": "Boots of Pure Thought",
+        "ds": "\"=ds=#s12#, #a1#\"",
+        "drop_rate": "4%",
+        "slot": "Boots",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19438,
+        "name": "Ringo's Blizzard Boots",
+        "ds": "\"=ds=#s12#, #a1#\"",
+        "drop_rate": "5%",
+        "slot": "Boots",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19434,
+        "name": "Band of Dark Dominion",
+        "ds": "\"=ds=#s13#\"",
+        "drop_rate": "2%",
+        "slot": "Ring",
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": true,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19435,
+        "name": "Essence Gatherer",
+        "ds": "\"=ds=#w12#\"",
+        "drop_rate": "2%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#w12#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19354,
+        "name": "Draconic Avenger",
+        "ds": "\"=ds=#h2#, #w1#\"",
+        "drop_rate": "5%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#h2#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 19358,
+        "name": "Draconic Maul",
+        "ds": "\"=ds=#h2#, #w6#\"",
+        "drop_rate": "4%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#w6#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      }
+    ]
+  },
+  "UKH_UKHTrash": {
+    "table_name": "UKHTrash",
+    "instance": "UKH",
+    "total_items": 10,
+    "priest_appropriate": 5,
+    "items": [
+      {
+        "id": 55275,
+        "name": "Slivers of Nullification",
+        "ds": "\"=ds=#s14#\"",
+        "drop_rate": "0.25%",
+        "slot": "Trinket",
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": true,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 55277,
+        "name": "The End of All Ambitions",
+        "ds": "\"=ds=#h2#, #w10#\"",
+        "drop_rate": "0.25%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#h2#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 55284,
+        "name": "Dragunovi's Sash of Dominion",
+        "ds": "\"=ds=#s10#, #a1#\"",
+        "drop_rate": "0.25%",
+        "slot": "Waist",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 55286,
+        "name": "Ring of Holy Light",
+        "ds": "\"=ds=#s13#\"",
+        "drop_rate": "0.25%",
+        "slot": "Ring",
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": true,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 55508,
+        "name": "Brand of Karazhan",
+        "ds": "\"=ds=#s13#\"",
+        "drop_rate": "0.25%",
+        "slot": "Ring",
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": true,
+        "is_priest_appropriate": true
+      }
+    ]
+  },
+  "ZG_ZGTrash1": {
+    "table_name": "ZGTrash1",
+    "instance": "ZG",
+    "total_items": 20,
+    "priest_appropriate": 2,
+    "items": [
+      {
+        "id": 19908,
+        "name": "Sceptre of Smiting",
+        "ds": "\"=ds=#h1#, #w6#\"",
+        "drop_rate": "0.03%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#w6#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 20258,
+        "name": "Zulian Ceremonial Staff",
+        "ds": "\"=ds=#w9#\"",
+        "drop_rate": "0.03%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#w9#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      }
+    ]
+  },
+  "ZG_ZGTrash2": {
+    "table_name": "ZGTrash2",
+    "instance": "ZG",
+    "total_items": 18,
+    "priest_appropriate": 0,
+    "items": []
+  },
+  "LKH_LKHTrash": {
+    "table_name": "LKHTrash",
+    "instance": "LKH",
+    "total_items": 15,
+    "priest_appropriate": 3,
+    "items": [
+      {
+        "id": 61254,
+        "name": "Reedmesh Belt",
+        "ds": "\"=ds=#s10#, #a1#\"",
+        "drop_rate": "0.15%",
+        "slot": "Waist",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 61288,
+        "name": "Nightwoven Belt",
+        "ds": "\"=ds=#s10#, #a1#\"",
+        "drop_rate": "0.15%",
+        "slot": "Waist",
+        "armor": "Cloth",
+        "is_cloth": true,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": false,
+        "weapon_type": null,
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      },
+      {
+        "id": 61295,
+        "name": "Dawnstone Bludgeon",
+        "ds": "\"=ds=#h1#, #w6#\"",
+        "drop_rate": "0.15%",
+        "slot": null,
+        "armor": null,
+        "is_cloth": false,
+        "is_priest_class_restricted": false,
+        "is_priest_usable_weapon": true,
+        "weapon_type": "#w6#",
+        "is_jewelry": false,
+        "is_priest_appropriate": true
+      }
+    ]
+  }
+}
