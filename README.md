@@ -83,7 +83,7 @@ Use `/pbis`, `/bis`, or `/priestbis` in-game:
 
 1. Download the latest release `.zip` from the [Releases](https://github.com/prodigeomix/PriestBiS/releases) page.
 2. Extract the folder into your `World of Warcraft/Interface/AddOns/` directory.
-3. Ensure the folder is named **`PriestBiS`** (or `UpgradeAlert`).
+3. Ensure the folder is named **`PriestBiS`**.
 4. Launch the game and type `/pbis gear` or `/bis` to verify!
 
 ---

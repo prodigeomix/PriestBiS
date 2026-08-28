@@ -1185,7 +1185,7 @@ end
 -- 7. ALERT UI FRAME & ANIMATIONS
 -- ================================================
 
-local alertFrame = CreateFrame("Frame", "UpgradeAlertFrame", UIParent)
+local alertFrame = CreateFrame("Frame", "PriestBiSAlertFrame", UIParent)
 alertFrame:Hide()
 alertFrame:SetWidth(360)
 alertFrame:SetHeight(190)
@@ -1317,7 +1317,7 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
     if not tooltip or not link then return end
     if tooltip == getglobal("UAScanningTooltip") then return end
 
-    if UpgradeAlertDB and UpgradeAlertDB.tooltipAlerts == false then
+    if PriestBiSDB and PriestBiSDB.tooltipAlerts == false then
         return
     end
 
@@ -1335,7 +1335,7 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
             for i = 1, num do
                 local line = getglobal(tooltipName .. "TextLeft" .. i)
                 local text = line and line:GetText()
-                if text and (string.find(text, "%[PriestBiS%]") or string.find(text, "%[UpgradeAlert%]")) then
+                if text and string.find(text, "%[PriestBiS%]") then
                     return
                 end
             end
@@ -1379,7 +1379,7 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
             tooltip:AddLine(format("  |cffffd100Note:|r %s", comp.note), 1, 0.82, 0)
         end
     else
-        local db = PriestBiSDB or UpgradeAlertDB
+        local db = PriestBiSDB
         if db and db.showDowngrades == false then
             insideAppend = false
             return
@@ -1736,7 +1736,7 @@ function UA.CheckRaidRollMessage(message)
 end
 
 -- Consolidated Event Dispatcher
-local eventFrame = CreateFrame("Frame", "UpgradeAlertEventFrame")
+local eventFrame = CreateFrame("Frame", "PriestBiSEventFrame")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 eventFrame:RegisterEvent("CHARACTER_POINTS_CHANGED")
@@ -1751,9 +1751,9 @@ eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 
 eventFrame:SetScript("OnEvent", function()
     if event == "ADDON_LOADED" then
-        if not UpgradeAlertDB then UpgradeAlertDB = {} end
-        if UpgradeAlertDB.tooltipAlerts == nil then UpgradeAlertDB.tooltipAlerts = true end
-        if UpgradeAlertDB.showDowngrades == nil then UpgradeAlertDB.showDowngrades = true end
+        if not PriestBiSDB then PriestBiSDB = {} end
+        if PriestBiSDB.tooltipAlerts == nil then PriestBiSDB.tooltipAlerts = true end
+        if PriestBiSDB.showDowngrades == nil then PriestBiSDB.showDowngrades = true end
         UA.HookAllTooltips()
         UA.HookLootBlare()
     elseif event == "PLAYER_ENTERING_WORLD" then
@@ -1784,13 +1784,11 @@ SLASH_PriestBiS1 = "/priestbis"
 SLASH_PriestBiS2 = "/pbis"
 SLASH_PriestBiS3 = "/bis"
 SLASH_PriestBiS4 = "/ua"
-SLASH_PriestBiS5 = "/upgradealert"
 
 local function PriestBiS_SlashHandler(msg)
     local cmd = string.lower(msg or "")
-    local db = PriestBiSDB or UpgradeAlertDB or {}
+    local db = PriestBiSDB or {}
     PriestBiSDB = db
-    UpgradeAlertDB = db
 
     if cmd == "toggle" then
         if alertFrame:IsVisible() then
@@ -1839,4 +1837,3 @@ local function PriestBiS_SlashHandler(msg)
 end
 
 SlashCmdList["PriestBiS"] = PriestBiS_SlashHandler
-SlashCmdList["UpgradeAlert"] = PriestBiS_SlashHandler

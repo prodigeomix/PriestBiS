@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-AtlasLoot Enhanced Boss Parser for UpgradeAlert Addon
+AtlasLoot Enhanced Boss Parser for PriestBiS Addon
 Scans boss loot tables in Instances.lua and identifies priest-appropriate drops
-that are missing from the UpgradeAlert database.
+that are missing from the PriestBiS database.
 """
 import re
 import json
 import os
 
-ATLASLOOT_PATH = r"C:\Games\Interface\AddOns\AtlasLoot\Database\Instances.lua"
-UPGRADEALERT_PATH = r"C:\Games\Interface\AddOns\UpgradeAlert\UpgradeAlert.lua"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ATLASLOOT_PATH = os.path.join(os.path.dirname(BASE_DIR), "AtlasLoot", "Database", "Instances.lua")
+PRIESTBIS_PATH = os.path.join(BASE_DIR, "PriestBiS.lua")
 
 CLOTH_ARMOR_TAG = "#a1#"
 PRIEST_CLASS_TAG = "#c5#"
@@ -134,7 +135,7 @@ def get_existing_db_ids(ua_content):
 def main():
     with open(ATLASLOOT_PATH, "r", encoding="utf-8") as f:
         content = f.read()
-    with open(UPGRADEALERT_PATH, "r", encoding="utf-8") as f:
+    with open(PRIESTBIS_PATH, "r", encoding="utf-8") as f:
         ua_content = f.read()
 
     existing_db = get_existing_db_ids(ua_content)
@@ -199,7 +200,7 @@ def main():
             print(f"    [{item['id']}] {item['name']}")
 
     # Save output
-    output_path = r"C:\Games\Interface\AddOns\UpgradeAlert\tools\boss_drops_output.json"
+    output_path = os.path.join(BASE_DIR, "tools", "boss_drops_output.json")
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(missing_items, f, indent=2, ensure_ascii=False)

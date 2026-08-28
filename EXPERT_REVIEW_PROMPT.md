@@ -2,7 +2,7 @@
 
 ## Overview
 
-**PriestBiS** (formerly UpgradeAlert) is a real-time loot and upgrade monitor built for Holy & Discipline Priests on **Vanilla WoW 1.12.1** and **Turtle WoW 1.18.1**, engineered in strict **Lua 5.0.2**.
+**PriestBiS** is a real-time loot and upgrade monitor built for Holy & Discipline Priests on **Vanilla WoW 1.12.1** and **Turtle WoW 1.18.1**, engineered in strict **Lua 5.0.2**.
 
 ---
 

@@ -222,7 +222,7 @@ end
 assert(ItemRefTooltip:NumLines() > 7, "Tooltip should have appended upgrade lines")
 local foundUpgradeLine = false
 for _, line in ipairs(ItemRefTooltip._linesLeft) do
-    if string.find(line, "%[PriestBiS%] UPGRADE") or string.find(line, "%[UpgradeAlert%] UPGRADE") then
+    if string.find(line, "%[PriestBiS%] UPGRADE") then
         foundUpgradeLine = true
     end
 end

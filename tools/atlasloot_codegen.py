@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-AtlasLoot Integration Tool for UpgradeAlert Addon
+AtlasLoot Integration Tool for PriestBiS Addon
 
 Generates Lua code for trash drops, boss drops, and database items from AtlasLoot data.
-Cross-references with existing UpgradeAlert.lua to identify gaps and conflicts.
+Cross-references with existing PriestBiS.lua to identify gaps and conflicts.
 
 Usage:
     python atlasloot_codegen.py
@@ -13,9 +13,10 @@ import json
 import os
 import sys
 
-ATLASLOOT_PATH = r"C:\Games\Interface\AddOns\AtlasLoot\Database\Instances.lua"
-UPGRADEALERT_PATH = r"C:\Games\Interface\AddOns\UpgradeAlert\UpgradeAlert.lua"
-TOOLS_DIR = r"C:\Games\Interface\AddOns\UpgradeAlert\tools"
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ATLASLOOT_PATH = os.path.join(os.path.dirname(BASE_DIR), "AtlasLoot", "Database", "Instances.lua")
+PRIESTBIS_PATH = os.path.join(BASE_DIR, "PriestBiS.lua")
+TOOLS_DIR = os.path.join(BASE_DIR, "tools")
 
 CLOTH_ARMOR_TAG = "#a1#"
 PRIEST_CLASS_TAG = "#c5#"
@@ -264,7 +265,7 @@ def main():
 
     with open(ATLASLOOT_PATH, "r", encoding="utf-8") as f:
         content = f.read()
-    with open(UPGRADEALERT_PATH, "r", encoding="utf-8") as f:
+    with open(PRIESTBIS_PATH, "r", encoding="utf-8") as f:
         ua_content = f.read()
 
     existing_db = get_existing_db_ids(ua_content)

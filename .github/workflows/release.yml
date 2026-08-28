@@ -18,7 +18,6 @@ jobs:
         mkdir -p PriestBiS
         cp PriestBiS.lua PriestBiS/
         cp PriestBiS.toc PriestBiS/
-        cp UpgradeAlert.toc PriestBiS/
         cp LICENSE PriestBiS/
         cp README.md PriestBiS/
         zip -r PriestBiS.zip PriestBiS

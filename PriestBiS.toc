@@ -3,7 +3,7 @@
 ## Notes: Real-time dynamic gear upgrade detection, healing EP scoring, talent sync, and raid roll alerts for Holy & Discipline Priests.
 ## Author: prodigeomix (Carbon)
 ## Version: 1.0.0
-## SavedVariablesPerCharacter: PriestBiSDB, UpgradeAlertDB
+## SavedVariablesPerCharacter: PriestBiSDB
 ## OptionalDeps: AtlasLoot, pfQuest, pfQuest-turtle, BetterCharacterStats, LootBlare
 
 PriestBiS.lua

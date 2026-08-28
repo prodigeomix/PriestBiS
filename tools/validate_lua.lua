@@ -1,6 +1,6 @@
 #!/usr/bin/env lua
 --[[
-Lua syntax validator for UpgradeAlert.lua
+Lua syntax validator for PriestBiS.lua
 Uses standalone Lua 5.1 to check syntax without requiring WoW API.
 ]]--
 
@@ -62,7 +62,7 @@ _G.Highlight = make_stub()
 _G.PurpleFont = make_stub()
 
 -- Load the addon file
-local filepath = arg and arg[1] or "UpgradeAlert.lua"
+local filepath = arg and arg[1] or "PriestBiS.lua"
 local success, err = pcall(dofile, filepath)
 if success then
     print("SYNTAX OK: " .. filepath .. " loaded successfully")
