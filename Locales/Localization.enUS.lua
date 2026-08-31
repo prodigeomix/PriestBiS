@@ -58,7 +58,7 @@ PriestBiS:RegisterLocale("enUS", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Toggle tooltip downgrade/sidegrade info on/off",
     ["SLASH_DB"] = "  /pbis db         - List curated priority upgrade database",
     ["SLASH_HELP"] = "  /pbis help       - Show this help message",
-    ["SLASH_VERSION"] = "v1.1.0 by |cffffffffprodigeomix|r (Carbon) - Real-time upgrade monitor for Holy & Discipline Priests.",
+    ["SLASH_VERSION"] = "v1.2.0 by |cffffffffprodigeomix|r (Carbon) - Real-time upgrade monitor for Holy & Discipline Priests.",
     ["SLASH_HELP_PROMPT"] = "Type |cff00ff00/pbis help|r or |cff00ff00/bis gear|r for commands.",
     ["CURATED_UPGRADES_TITLE"] = "Curated High-Priority Upgrades:",
     ["TRACKED_GEAR_TITLE"] = "Currently Tracked Gear (Live Query):",

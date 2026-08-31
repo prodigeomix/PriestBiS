@@ -1,4 +1,4 @@
-# Expert Review Document: PriestBiS Architecture (v1.0.0)
+# Expert Review Document: PriestBiS Architecture (v1.2.0)
 
 ## Overview
 

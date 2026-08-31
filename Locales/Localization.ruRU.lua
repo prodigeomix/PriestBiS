@@ -58,7 +58,7 @@ PriestBiS:RegisterLocale("ruRU", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Вкл/выкл информацию об ухудшениях",
     ["SLASH_DB"] = "  /pbis db         - Список базы приоритетных улучшений",
     ["SLASH_HELP"] = "  /pbis help       - Показать это сообщение",
-    ["SLASH_VERSION"] = "v1.1.0 от |cffffffffprodigeomix|r (Carbon) - Отслеживание улучшений для жрецов Света и Послушания.",
+    ["SLASH_VERSION"] = "v1.2.0 от |cffffffffprodigeomix|r (Carbon) - Отслеживание улучшений для жрецов Света и Послушания.",
     ["SLASH_HELP_PROMPT"] = "Введите |cff00ff00/pbis help|r или |cff00ff00/bis gear|r для списка команд.",
     ["CURATED_UPGRADES_TITLE"] = "Приоритетные улучшения:",
     ["TRACKED_GEAR_TITLE"] = "Текущая отслеживаемая экипировка:",

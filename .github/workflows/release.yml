@@ -18,8 +18,10 @@ jobs:
         mkdir -p PriestBiS
         cp PriestBiS.lua PriestBiS/
         cp PriestBiS.toc PriestBiS/
+        cp -r Locales PriestBiS/
         cp LICENSE PriestBiS/
         cp README.md PriestBiS/
+        cp CHANGELOG.md PriestBiS/
         zip -r PriestBiS.zip PriestBiS
 
     - name: Create GitHub Release

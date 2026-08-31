@@ -58,7 +58,7 @@ PriestBiS:RegisterLocale("deDE", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Downgrade-/Gleichwertig-Infos an/aus",
     ["SLASH_DB"] = "  /pbis db         - Liste der kuratierten Upgrade-Datenbank",
     ["SLASH_HELP"] = "  /pbis help       - Zeige diese Hilfe",
-    ["SLASH_VERSION"] = "v1.1.0 von |cffffffffprodigeomix|r (Carbon) - Echtzeit-Upgrade-Monitor für Heilig- & Disziplin-Priester.",
+    ["SLASH_VERSION"] = "v1.2.0 von |cffffffffprodigeomix|r (Carbon) - Echtzeit-Upgrade-Monitor für Heilig- & Disziplin-Priester.",
     ["SLASH_HELP_PROMPT"] = "Tippe |cff00ff00/pbis help|r oder |cff00ff00/bis gear|r für Befehle.",
     ["CURATED_UPGRADES_TITLE"] = "Kuratierte Prioritäts-Upgrades:",
     ["TRACKED_GEAR_TITLE"] = "Aktuell verfolgte Ausrüstung (Live-Abfrage):",

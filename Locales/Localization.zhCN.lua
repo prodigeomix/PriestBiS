@@ -58,7 +58,7 @@ PriestBiS:RegisterLocale("zhCN", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - 开关降级/平级装备提示",
     ["SLASH_DB"] = "  /pbis db         - 查看精选提升数据库",
     ["SLASH_HELP"] = "  /pbis help       - 显示此帮助信息",
-    ["SLASH_VERSION"] = "v1.1.0 作者 |cffffffffprodigeomix|r (Carbon) - 神圣与戒律牧师实时动态装备提升助手。",
+    ["SLASH_VERSION"] = "v1.2.0 作者 |cffffffffprodigeomix|r (Carbon) - 神圣与戒律牧师实时动态装备提升助手。",
     ["SLASH_HELP_PROMPT"] = "输入 |cff00ff00/pbis help|r 或 |cff00ff00/bis gear|r 查看指令。",
     ["CURATED_UPGRADES_TITLE"] = "精选高优先级装备提升:",
     ["TRACKED_GEAR_TITLE"] = "当前追踪装备 (实时查询):",

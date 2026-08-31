@@ -3,6 +3,7 @@
 > **The Intelligent Real-Time Loot, Upgrade & BiS Assistant for Holy and Discipline Priests.**
 
 [![WoW Version](https://img.shields.io/badge/Interface-1.12.1%20%7C%20Turtle%20WoW%201.18.1-blue.svg)](https://turtle-wow.org)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
 [![Languages](https://img.shields.io/badge/Languages-enUS%20%7C%20zhCN%20%7C%20ruRU%20%7C%20deDE%20%7C%20frFR-purple.svg)]()
 [![Class](https://img.shields.io/badge/Class-Priest%20(Holy%2FDiscipline)-gold.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)

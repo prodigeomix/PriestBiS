@@ -11,6 +11,9 @@ local UA = PriestBiS
 _G.PriestBiS = PriestBiS
 _G.UA = PriestBiS
 
+PriestBiS.VERSION = "1.2.0"
+UA.VERSION = "1.2.0"
+
 local format = string.format
 local tostring = tostring
 local tonumber = tonumber

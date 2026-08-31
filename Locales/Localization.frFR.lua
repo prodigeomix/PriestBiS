@@ -58,7 +58,7 @@ PriestBiS:RegisterLocale("frFR", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Activer/désactiver les infos de régression",
     ["SLASH_DB"] = "  /pbis db         - Liste de la base d'améliorations prioritaires",
     ["SLASH_HELP"] = "  /pbis help       - Affiche ce message d'aide",
-    ["SLASH_VERSION"] = "v1.1.0 par |cffffffffprodigeomix|r (Carbon) - Moniteur d'amélioration en temps réel pour Prêtres Sacré & Discipline.",
+    ["SLASH_VERSION"] = "v1.2.0 par |cffffffffprodigeomix|r (Carbon) - Moniteur d'amélioration en temps réel pour Prêtres Sacré & Discipline.",
     ["SLASH_HELP_PROMPT"] = "Tapez |cff00ff00/pbis help|r ou |cff00ff00/bis gear|r pour les commandes.",
     ["CURATED_UPGRADES_TITLE"] = "Améliorations prioritaires recommandées :",
     ["TRACKED_GEAR_TITLE"] = "Équipement actuellement suivi (requête directe) :",
