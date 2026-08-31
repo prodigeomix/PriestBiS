@@ -133,5 +133,5 @@ PriestBiS:RegisterPatterns("enUS", {
         ["The Postulant's Regalia"] = { [2] = { ep = 20, desc = "2-Piece Set Bonus: +20 Healing" } },
         ["Confessor's Raiment"] = { [2] = { ep = 22, desc = "2-Piece Set Bonus: +22 Spell Power" } },
     },
-    ROLL_KEYWORDS = { "roll", "need", "greed", "ms", "sr", "os" },
+    ROLL_KEYWORDS = { "roll", "need", "greed", "ms", "sr", "os", "rush" },
 })

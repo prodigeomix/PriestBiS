@@ -46,4 +46,4 @@
 ---
 
 ## Verification & Test Harness
-- 100% pass rate in headless Lua test suite (`tools/test_upgrade_alert.lua`).
+- 100% pass rate in headless Lua test suite (`tools/test_priest_bis.lua`).

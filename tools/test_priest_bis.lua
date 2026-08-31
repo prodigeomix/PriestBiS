@@ -55,6 +55,9 @@ local function make_frame(frameType, name)
             elseif link == "item:61004:0:0:0" then
                 self._linesLeft = { "Sandswept Ring of Arcanum", "Finger", "+10 Intellect", "+10 Spirit", "Increases healing done by spells and effects by up to 22", "Restores 3 mana per 5 sec." }
                 self._linesRight = { "", "", "", "", "", "" }
+            elseif link == "item:19890:0:0:0" then
+                self._linesLeft = { "Jin'do's Hexxer", "Binds when picked up", "Unique", "Main Hand", "64 - 135 Damage", "(41.4 damage per second)", "+6 Stamina", "+9 Intellect", "Requires Level 60", "Equip: Increases healing done by spells and effects by up to 51.", "Equip: Improves your chance to get a critical strike with spells by 1%." }
+                self._linesRight = { "", "", "", "Mace", "Speed 2.40", "", "", "", "", "", "" }
             elseif link == "item:55286:0:0:0" then
                 self._linesLeft = { "Ring of Holy Light", "Finger", "+18 Intellect", "+28 Spirit" }
                 self._linesRight = { "", "", "", "" }
@@ -181,14 +184,22 @@ _G.getglobal = function(name)
         local _, _, idx = string.find(name, "^UAScanningTooltipTextLeft(%d+)")
         idx = tonumber(idx)
         if idx and tooltip._linesLeft and tooltip._linesLeft[idx] then
-            return { GetText = function() return tooltip._linesLeft[idx] end }
+            return {
+                GetText = function() return tooltip._linesLeft[idx] end,
+                SetText = function(self, val) tooltip._linesLeft[idx] = val end,
+                IsShown = function() return tooltip._linesLeft[idx] ~= nil and tooltip._linesLeft[idx] ~= "" end
+            }
         end
         return nil
     elseif tooltip and string.find(name, "^UAScanningTooltipTextRight(%d+)") then
         local _, _, idx = string.find(name, "^UAScanningTooltipTextRight(%d+)")
         idx = tonumber(idx)
         if idx and tooltip._linesRight and tooltip._linesRight[idx] then
-            return { GetText = function() return tooltip._linesRight[idx] end }
+            return {
+                GetText = function() return tooltip._linesRight[idx] end,
+                SetText = function(self, val) tooltip._linesRight[idx] = val end,
+                IsShown = function() return tooltip._linesRight[idx] ~= nil and tooltip._linesRight[idx] ~= "" end
+            }
         end
         return nil
     end
@@ -398,6 +409,23 @@ local druidComp = UA.GetUpgradeComparison(16900, "item:16900:0:0:0")
 print("Druid-Only Boots Equip Check:\t" .. tostring(druidComp.isUpgrade) .. "\t-\t" .. tostring(druidComp.reason))
 assert(druidComp.isUpgrade == false, "Druid-only boots must NEVER be an upgrade for Priest")
 
+print("--- Testing Jin'do's Hexxer (1H Mace Equipability & Stat Scoring) ---")
+local hexxerData = UA.GetItemData(19890, "item:19890:0:0:0")
+print("Scanned Hexxer Stats:\t" .. tostring(hexxerData.name) .. "\tSlot: " .. tostring(hexxerData.slot) .. "\tSubType: " .. tostring(hexxerData.subType) .. "\tHeal: " .. tostring(hexxerData.healing) .. "\tCrit: " .. tostring(hexxerData.crit) .. "\tInt: " .. tostring(hexxerData.int))
+assert(hexxerData.name == "Jin'do's Hexxer", "Hexxer name must match")
+assert(hexxerData.slot == "Mainhand", "Hexxer slot must be Mainhand")
+assert(hexxerData.subType == "Mace", "Hexxer subtype must be Mace, not Leather")
+assert(hexxerData.healing == 51, "Hexxer healing must be 51")
+assert(hexxerData.crit == 1, "Hexxer crit must be 1%")
+assert(hexxerData.int == 9, "Hexxer int must be 9")
+assert(hexxerData.stam == 6, "Hexxer stam must be 6")
+
+local hexxerComp = UA.GetUpgradeComparison(19890, "item:19890:0:0:0")
+print("Hexxer Equipable Check:\t" .. tostring(hexxerComp.isEquipable) .. "\tScore: " .. tostring(hexxerComp.newScore) .. "\tReason: " .. tostring(hexxerComp.reason))
+assert(hexxerComp.isEquipable == true, "Jin'do's Hexxer must be equipable by Priest")
+assert(hexxerComp.roleMismatch == false, "Jin'do's Hexxer must not have a role mismatch")
+assert(hexxerComp.newScore > 60, "Hexxer score should be ~61 EP (+51 Heal + 1.98 Int + 0.3 Stam + 8 Crit)")
+
 print("--- Testing Multi-Language Tooltip Parsing ---")
 
 -- Chinese item scanning
@@ -464,4 +492,41 @@ print("  Set Bonus Description:\t" .. tostring(set3Comp.setBonusDesc))
 assert(set3Comp.setBonusEP == 25, "Should award 25 EP for 3-pc Transcendence activation")
 assert(set3Comp.isUpgrade == true, "3-pc Transcendence must be recognized as an upgrade")
 
+print("--- Testing Raid Roll Chat Detection & 'rush' Keyword ---")
+local alertCalledWith = nil
+local origShowAlert = UA.ShowAlert
+UA.ShowAlert = function(id, link)
+    alertCalledWith = id
+end
+
+-- Test standard roll
+alertCalledWith = nil
+UA.CheckRaidRollMessage("Roll for |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r MS/OS")
+assert(alertCalledWith == 16925, "Should trigger alert for standard 'Roll' message")
+
+-- Test 'rush' keyword (Turtle WoW raid convention)
+alertCalledWith = nil
+UA.CheckRaidRollMessage("rush |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r 100")
+assert(alertCalledWith == 16925, "Should trigger alert for 'rush' keyword message")
+
+-- Test non-roll chatter (should NOT trigger)
+alertCalledWith = nil
+UA.CheckRaidRollMessage("Gz on getting |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r!")
+assert(alertCalledWith == nil, "Should NOT trigger alert for non-roll chatter")
+
+UA.ShowAlert = origShowAlert
+
+print("--- Testing Alert Frame OnUpdate Nil-Safety ---")
+-- Test toggle/show and verify OnUpdate handler runs cleanly when arg1 is nil
+UA.ShowAlert(19958)
+local alertF = _G["PriestBiS_AlertFrame"]
+if alertF and alertF._scripts and alertF._scripts["OnUpdate"] then
+    _G.arg1 = nil
+    -- Executing OnUpdate with nil arg1 should not raise an error
+    local ok, err = pcall(alertF._scripts["OnUpdate"])
+    assert(ok, "OnUpdate should execute safely when arg1 is nil: " .. tostring(err))
+    print("AlertFrame OnUpdate nil-safety verified successfully.")
+end
+
 print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE) PASSED SUCCESSFULLY!")
+

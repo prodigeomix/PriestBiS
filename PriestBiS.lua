@@ -100,6 +100,9 @@ UA.ITEM_METADATA = {
     [55275] = { name = "Slivers of Nullification", role = "TANK", tier = "F", ep_override = 0, drop = "UKH: Trash (0.25%)", priority = 99, note = "Tank trinket - not for priest" },
 
     -- === ZUL'GURUB GEAR (Drop & Note Annotations) ===
+    [19890] = { drop = "ZG: Jin'do the Hexxer (8%)", priority = 1, note = "BiS Phase 4 1H healing mace (+51 Heal, +1% Crit, +9 Int)" },
+    [19884] = { drop = "ZG: Jin'do the Hexxer (14%)", priority = 5, note = "Top caster/healer offhand (+18 Heal/Dmg, +1% Crit, +11 Int, +6 Spi)" },
+    [19885] = { drop = "ZG: Jin'do the Hexxer (17%)", priority = 6, note = "Epic healing neck (+44 Heal, +5 Int, +6 Spi, +11 Stam)" },
     [20032] = { drop = "ZG: High Priestess Mar'li (17%)", priority = 2, note = "Epic cloth chest" },
     [19841] = { drop = "ZG: Primal Hakkari Shawl token", priority = 3, note = "Epic T0.5 shoulder" },
     [19842] = { drop = "ZG: Primal Hakkari Sash token", priority = 4, note = "Epic T0.5 belt" },
@@ -195,6 +198,8 @@ UA.BOSS_DROPS = {
     ["Bloodlord Mandokir"] = { 19841, 19842, 19843 },
     ["Arlokk"] = { 19841, 19842, 19843, 55278 },
     ["Renataki"] = { 19897 },
+    ["Jin'do the Hexxer"] = { 19890, 19884, 19885, 19958 },
+    ["Jin'do"] = { 19890, 19884, 19885, 19958 },
     ["Gri'lek"] = { 22721 },
     ["Hazza'rah"] = { 19967, 22721 },
     ["Wushoolay"] = { 22721 },
@@ -268,6 +273,13 @@ local EQUIP_SLOT_MAP = {
 -- Helper to detect armor / weapon subtype across locales
 local function DetectSubtype(str)
     if not str or str == "" then return nil end
+    -- Ignore lines that mention professions, crafting, skills, or recipes
+    if string.find(str, "Leatherworking") or string.find(str, "Lederverarbeitung") or string.find(str, "Travail du cuir") or string.find(str, "Кожевничество") or string.find(str, "制皮")
+       or string.find(str, "Blacksmithing") or string.find(str, "Schmiedekunst") or string.find(str, "Forge") or string.find(str, "Кузнечное") or string.find(str, "锻造")
+       or string.find(str, "Tailoring") or string.find(str, "Schneiderei") or string.find(str, "Couture") or string.find(str, "Портняжное") or string.find(str, "裁缝") then
+        return nil
+    end
+
     if string.find(str, "Leather") or string.find(str, "皮甲") or string.find(str, "Кожа") or string.find(str, "Leder") or string.find(str, "Cuir") then return "Leather"
     elseif string.find(str, "Mail") or string.find(str, "锁甲") or string.find(str, "Кольчуга") or string.find(str, "Schwere Rüstung") or string.find(str, "Maille") then return "Mail"
     elseif string.find(str, "Plate") or string.find(str, "板甲") or string.find(str, "Латы") or string.find(str, "Platte") or string.find(str, "Plaques") then return "Plate"
@@ -360,6 +372,12 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
 
     scanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
     scanTooltip:ClearLines()
+    for j = 1, 30 do
+        local l = getglobal("UAScanningTooltipTextLeft" .. j)
+        if l then l:SetText("") end
+        local r = getglobal("UAScanningTooltipTextRight" .. j)
+        if r then r:SetText("") end
+    end
     if slotID and GetInventoryItemLink and GetInventoryItemLink("player", slotID) then
         pcall(function() scanTooltip:SetInventoryItem("player", slotID) end)
     elseif rawLink then
@@ -388,10 +406,24 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         for i = 1, numLines do
             local leftLine = getglobal("UAScanningTooltipTextLeft" .. i)
             local rightLine = getglobal("UAScanningTooltipTextRight" .. i)
-            local text = leftLine and leftLine:GetText()
-            local rText = rightLine and rightLine:GetText()
+            local text = nil
+            if leftLine then
+                if leftLine.IsShown then
+                    if leftLine:IsShown() then text = leftLine:GetText() end
+                else
+                    text = leftLine:GetText()
+                end
+            end
+            local rText = nil
+            if rightLine then
+                if rightLine.IsShown then
+                    if rightLine:IsShown() then rText = rightLine:GetText() end
+                else
+                    rText = rightLine:GetText()
+                end
+            end
 
-            if text then
+            if text and text ~= "" then
                 if i == 1 then
                     stats.name = text
                 end
@@ -420,11 +452,16 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     end
                 end
 
-                -- Match +Healing
+                -- Match +Healing and +Spell Damage/Healing (Spell Power)
                 local valH = ScanStatAcrossLocales(text, "HEALING")
-                if valH then stats.healing = stats.healing + valH end
+                if valH then
+                    stats.healing = stats.healing + valH
+                else
+                    local valDH = ScanStatAcrossLocales(text, "DAMAGE_HEALING")
+                    if valDH then stats.healing = stats.healing + valDH end
+                end
 
-                       -- Match Intellect, Spirit, Stamina
+                -- Match Intellect, Spirit, Stamina
                 local valInt = ScanStatAcrossLocales(text, "INT")
                 if valInt then stats.int = stats.int + valInt end
 
@@ -442,7 +479,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                 local valCrit = ScanStatAcrossLocales(text, "CRIT")
                 if valCrit then stats.crit = stats.crit + valCrit end
 
-                -- Detect slot from tooltip if not yet found
+                -- Detect slot from tooltip left column if not yet found
                 if not stats.slot then
                     if string.find(text, "Head") or string.find(text, "头部") or string.find(text, "Голова") or string.find(text, "Kopf") or string.find(text, "Tête") then stats.slot = "Head"
                     elseif string.find(text, "Neck") or string.find(text, "颈部") or string.find(text, "Шея") or string.find(text, "Hals") or string.find(text, "Cou") then stats.slot = "Neck"
@@ -462,11 +499,11 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     elseif string.find(text, "Ranged") or string.find(text, "Wand") or string.find(text, "远程") or string.find(text, "魔杖") or string.find(text, "Дальний бой") or string.find(text, "Жезл") or string.find(text, "Distanz") or string.find(text, "Zauberstab") or string.find(text, "À distance") or string.find(text, "Baguette") then stats.slot = "Wand"
                     end
                 end
-            end
-
-            if not stats.subType then
-                stats.subType = DetectSubtype(rText)
-                if not stats.subType and i > 1 then
+            end            if not stats.subType then
+                if rText and rText ~= "" then
+                    stats.subType = DetectSubtype(rText)
+                end
+                if not stats.subType and i > 1 and text and text ~= "" then
                     stats.subType = DetectSubtype(text)
                 end
             end
@@ -505,7 +542,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         end
     end
 
-    if stats.name ~= "" or stats.slot ~= nil then
+    if stats.name ~= "" and stats.slot ~= nil then
         ITEM_STAT_CACHE[cacheKey] = stats
         if itemID and cacheKey ~= itemID then
             ITEM_STAT_CACHE[itemID] = stats
@@ -769,6 +806,15 @@ end
 -- ================================================
 
 -- Priest Armor & Weapon Equipability Rules across all locales
+local PRIEST_ARMOR_SLOTS = {
+    Head = true, Shoulder = true, Chest = true, Wrists = true,
+    Hands = true, Belt = true, Legs = true, Boots = true
+}
+
+local PRIEST_WEAPON_SLOTS = {
+    Mainhand = true, Twohand = true, Offhand = true, Wand = true
+}
+
 local PRIEST_PROHIBITED_ARMOR = {
     ["Leather"] = true, ["皮甲"] = true, ["Кожа"] = true, ["Leder"] = true, ["Cuir"] = true,
     ["Mail"] = true, ["锁甲"] = true, ["Кольчуга"] = true, ["Schwere Rüstung"] = true, ["Maille"] = true,
@@ -807,14 +853,14 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     local subType = itemData.subType
     if subType and subType ~= "" then
         -- Armor slots (Head, Shoulder, Chest, Wrists, Hands, Belt, Legs, Boots) CANNOT be Leather, Mail, Plate, Shield
-        if slot ~= "Ring" and slot ~= "Neck" and slot ~= "Trinket" and slot ~= "Back" then
+        if PRIEST_ARMOR_SLOTS[slot] then
             if PRIEST_PROHIBITED_ARMOR[subType] then
                 return false
             end
         end
 
         -- Weapon slots CANNOT be Swords, Axes, 2H Maces, Polearms, Bows, Guns, Shields
-        if slot == "Mainhand" or slot == "Twohand" or slot == "Offhand" or slot == "Wand" then
+        if PRIEST_WEAPON_SLOTS[slot] then
             if PRIEST_PROHIBITED_WEAPONS[subType] or subType == "Shield" or subType == "盾牌" or subType == "Щит" or subType == "Schild" or subType == "Bouclier" then
                 return false
             end
@@ -830,7 +876,7 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
         end
 
         if itemType == "Armor" or itemType == "护甲" or itemType == "Доспехи" or itemType == "Rüstung" or itemType == "Armure" then
-            if slot ~= "Ring" and slot ~= "Neck" and slot ~= "Trinket" and slot ~= "Back" then
+            if PRIEST_ARMOR_SLOTS[slot] then
                 if itemSubType and PRIEST_PROHIBITED_ARMOR[itemSubType] then
                     return false
                 end
@@ -1452,8 +1498,9 @@ function UA.ShowAlert(itemID, itemLink, texture)
     alertFrame._flashTimer = 0
     alertFrame:SetScript("OnUpdate", function()
         if not alertFrame:IsVisible() then return end
-        alertFrame._timer = alertFrame._timer + arg1
-        alertFrame._flashTimer = alertFrame._flashTimer + arg1
+        local elapsed = arg1 or 0
+        alertFrame._timer = alertFrame._timer + elapsed
+        alertFrame._flashTimer = alertFrame._flashTimer + elapsed
 
         if alertFrame._flashTimer < 0.6 then
             local alpha = 0.5 + 0.5 * math.sin(alertFrame._flashTimer * 15)
@@ -1922,7 +1969,7 @@ function UA.CheckRaidRollMessage(message)
     end
 
     if isRollCall then
-        for itemLink in string.gfind(message, "(|c%x+|Hitem:[%d:-]+|h%[[^%]]+%]h|r)") do
+        for itemLink in string.gfind(message, "(|c%x+|Hitem:[%d:-]+|h%[[^%]]+%]|h|r)") do
             local itemID = UA.GetItemIDFromLink(itemLink)
             if itemID then
                 local comp = UA.GetUpgradeComparison(itemID, itemLink)
