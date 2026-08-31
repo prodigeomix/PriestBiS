@@ -78,6 +78,8 @@ PriestBiS:RegisterPatterns("enUS", {
         "%+(%d+) Healing Spells",
         "%+(%d+) Healing",
         "(%d+) Healing Spells",
+        "Healing %+(%d+)",
+        "Healing Spells %+(%d+)",
     },
     DAMAGE_HEALING = {
         "Increases damage and healing done by magical spells and effects by up to (%d+)",
@@ -89,6 +91,8 @@ PriestBiS:RegisterPatterns("enUS", {
         "%+(%d+) Damage and Healing Spells",
         "%+(%d+) Damage and Healing",
         "%+(%d+) Spell Power",
+        "Damage and Healing %+(%d+)",
+        "Spell Damage %+(%d+)",
     },
     INT = {
         "%+(%d+) Intellect",

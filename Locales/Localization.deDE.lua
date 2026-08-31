@@ -72,6 +72,7 @@ PriestBiS:RegisterLocale("deDE", {
 PriestBiS:RegisterPatterns("deDE", {
     HEALING = {
         "Erhöht die durch Zauber und Effekte verursachte Heilung um bis zu (%d+)",
+        "Erhöht durch Zauber und Effekte verursachte Heilung um bis zu (%d+)",
         "Erhöht durch Zauber und magische Effekte zugefügte Heilung um bis zu (%d+)",
         "Erhöht Heilung um bis zu (%d+)",
         "%+(%d+) Heilzauber",

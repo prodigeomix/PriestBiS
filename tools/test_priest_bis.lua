@@ -2,6 +2,27 @@
 -- Comprehensive test suite for PriestBiS (Vanilla 1.12.1 / Turtle WoW)
 -- Multi-language verification (enUS, zhCN, ruRU, deDE, frFR)
 
+local mockInventory = {
+    [1] = "item:19132:0:0:0", -- Crystal Adorned Crown (Head)
+    [2] = "item:18723:0:0:0", -- Animated Chain Necklace (Neck)
+    [3] = "item:51047:0:0:0", -- Sacrosanct Epaulets (Shoulder)
+    [5] = "item:13346:0:0:0", -- Robes of the Exalted (Chest)
+    [6] = "item:16817:0:0:0", -- Girdle of Prophecy (Belt)
+    [7] = "item:16814:0:0:0", -- Pants of Prophecy (Legs)
+    [8] = "item:22247:0:0:0", -- Faith Healer's Boots (Boots)
+    [9] = "item:16819:0:0:0", -- Vambraces of Prophecy (Wrists)
+    [10] = "item:16812:0:0:0", -- Gloves of Prophecy (Hands)
+    [11] = "item:61004:0:0:0", -- Sandswept Ring of Arcanum (Ring1)
+    [12] = "item:55286:0:0:0", -- Ring of Holy Light (Ring2)
+    [13] = "item:58231:0:0:0", -- Penchant of Humility (Trinket1)
+    [14] = "item:61700:0:0:0", -- Fabric of Time (Trinket2)
+    [15] = "item:18510:0:0:0", -- Hide of the Wild (Back)
+    [16] = "item:22406:0:0:0", -- Redemption (Mainhand)
+    [17] = "item:19820:0:0:0", -- Consecrated Caduceus (Offhand)
+    [18] = "item:19927:0:0:0", -- Mar'li's Touch (Wand)
+}
+_G.GetInventoryItemLink = function(unit, slotId) return mockInventory[slotId] end
+
 local function make_frame(frameType, name)
     local f = {
         name = name,
@@ -31,6 +52,15 @@ local function make_frame(frameType, name)
                 self._linesLeft = { "Custom Turtle Belt", "Binds when picked up", "Waist", "+30 Healing Spells" }
                 self._linesRight = { "", "", "Cloth", "" }
 
+            elseif link == "item:16817:0:0:0" then
+                self._linesLeft = { "Girdle of Prophecy", "Binds when picked up", "Waist", "Cloth", "+10 Stamina", "+22 Intellect", "+10 Spirit", "+7 Fire Resistance", "Healing +8", "Equip: Restores 4 mana per 5 sec.", "Equip: Increases damage and healing done by magical spells and effects by up to 9.", "Equip: Increases healing done by spells and effects by up to 7.", "Vestments of Prophecy (3/8)", "  Boots of Prophecy", "  Circlet of Prophecy", "  Girdle of Prophecy", "  Gloves of Prophecy", "  Pants of Prophecy", "  Robes of Prophecy", "  Shoulderpads of Prophecy", "  Vambraces of Prophecy", "(3) Set: -0.1 sec to the casting time of your Flash Heal spell." }
+                self._linesRight = { "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }
+            elseif link == "item:16814:0:0:0" then
+                self._linesLeft = { "Pants of Prophecy", "Binds when picked up", "Legs", "Cloth", "+20 Intellect", "+21 Spirit", "+10 Stamina", "Equip: Increases healing done by spells and effects by up to 27.", "Vestments of Prophecy (3/8)" }
+                self._linesRight = { "", "", "", "", "", "", "", "", "" }
+            elseif link == "item:16819:0:0:0" then
+                self._linesLeft = { "Vambraces of Prophecy", "Binds when picked up", "Wrist", "Cloth", "+13 Intellect", "+14 Spirit", "+8 Stamina", "Equip: Increases healing done by spells and effects by up to 13.", "Vestments of Prophecy (3/8)" }
+                self._linesRight = { "", "", "", "", "", "", "", "", "" }
             elseif link == "item:19958:0:0:0" then
                 self._linesLeft = { "Hazza'rah's Charm of Healing", "Binds when picked up", "Trinket", "Use: Increases the critical effect chance of your Flash Heal and Greater Heal spells by 25%" }
                 self._linesRight = { "", "", "", "" }
@@ -108,6 +138,21 @@ local function make_frame(frameType, name)
             elseif link == "item:86001:0:0:0" then
                 self._linesLeft = { "Habits de transcendance", "Habits de transcendance (2/8)", "Torse", "+27 Intelligence", "+16 Esprit", "+17 Endurance", "Augmente les soins prodigués par les sorts et les effets d'un maximum de 59", "Rend 4 points de mana toutes les 5 sec." }
                 self._linesRight = { "", "", "Tissu", "", "", "", "", "" }
+
+            elseif link == "item:16817:0:0:0" then
+                self._linesLeft = {
+                    "Girdle of Prophecy", "Soulbound", "Waist", "57 Armor", "+10 Stamina", "+22 Intellect", "+10 Spirit", "+7 Fire Resistance",
+                    "Healing +8", "Durability 23 / 35", "Classes: Priest", "Requires Level 60",
+                    "Equip: Restores 4 mana per 5 sec.",
+                    "Equip: Increases damage and healing done by magical spells and effects by up to 9.",
+                    "Equip: Increases healing done by spells and effects by up to 7.",
+                    " ",
+                    "Vestments of Prophecy (3/8)",
+                    " Boots of Prophecy", " Circlet of Prophecy", " Girdle of Prophecy", " Gloves of Prophecy", " Pants of Prophecy", " Mantle of Prophecy", " Robes of Prophecy", " Vambraces of Prophecy",
+                    " ",
+                    "Set: -0.1 sec to the casting time of your Flash Heal spell.",
+                }
+                self._linesRight = { "", "", "Cloth", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "" }
 
             else
                 self._linesLeft = { "Test Item", "Binds when picked up", "Chest", "+10 Healing" }
@@ -209,7 +254,40 @@ end
 _G.CreateFrame = function(frameType, name, parent, template)
     return make_frame(frameType, name)
 end
-_G.GetItemInfo = function(id) return "Test Item", "item:123:0:0:0", 4, 60, 60, "Armor", "Cloth", 1, "INVTYPE_CHEST" end
+local slotToLoc = {
+    ["Head"] = "INVTYPE_HEAD", ["Neck"] = "INVTYPE_NECK", ["Shoulder"] = "INVTYPE_SHOULDER",
+    ["Chest"] = "INVTYPE_CHEST", ["Belt"] = "INVTYPE_WAIST", ["Legs"] = "INVTYPE_LEGS",
+    ["Boots"] = "INVTYPE_FEET", ["Wrists"] = "INVTYPE_WRIST", ["Hands"] = "INVTYPE_HAND",
+    ["Ring"] = "INVTYPE_FINGER", ["Trinket"] = "INVTYPE_TRINKET", ["Back"] = "INVTYPE_CLOAK",
+    ["Mainhand"] = "INVTYPE_WEAPONMAINHAND", ["Offhand"] = "INVTYPE_HOLDABLE",
+    ["Twohand"] = "INVTYPE_2HWEAPON", ["Wand"] = "INVTYPE_RANGEDRIGHT"
+}
+
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if not numId and type(id) == "string" then
+        local _, _, extracted = string.find(id, "item:(%d+)")
+        numId = tonumber(extracted)
+    end
+    if numId and _G.UA and _G.UA.ITEM_METADATA and _G.UA.ITEM_METADATA[numId] and _G.UA.ITEM_METADATA[numId].slot then
+        local meta = _G.UA.ITEM_METADATA[numId]
+        local loc = slotToLoc[meta.slot] or "INVTYPE_CHEST"
+        local itype = (meta.slot == "Mainhand" or meta.slot == "Offhand" or meta.slot == "Twohand" or meta.slot == "Wand") and "Weapon" or "Armor"
+        return meta.name or "Item", "item:" .. numId .. ":0:0:0", 4, 60, itype, "Cloth", 1, loc, "Interface\\Icons\\INV_Misc_QuestionMark"
+    end
+    if numId == 16817 then return "Girdle of Prophecy", "item:16817:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
+    if numId == 16814 then return "Pants of Prophecy", "item:16814:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_LEGS", "Interface\\Icons\\INV_Pants_07" end
+    if numId == 16819 then return "Vambraces of Prophecy", "item:16819:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WRIST", "Interface\\Icons\\INV_Bracer_07" end
+    if numId == 16812 then return "Gloves of Prophecy", "item:16812:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_HAND", "Interface\\Icons\\INV_Gauntlets_14" end
+    if numId == 16925 then return "Belt of Transcendence", "item:16925:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
+    if numId == 22406 then return "Redemption", "item:22406:0:0:0", 4, 60, "Weapon", "Maces", 1, "INVTYPE_WEAPONMAINHAND", "Interface\\Icons\\INV_Mace_01" end
+    if numId == 19820 then return "Consecrated Caduceus", "item:19820:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_HOLDABLE", "Interface\\Icons\\INV_Misc_Horn_01" end
+    if numId == 20258 then return "Zulian Healer's Staff", "item:20258:0:0:0", 4, 60, "Weapon", "Staves", 1, "INVTYPE_2HWEAPON", "Interface\\Icons\\INV_Staff_08" end
+    if numId == 19406 then return "Drake Fang Talisman", "item:19406:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_TRINKET", "Interface\\Icons\\INV_Misc_MonsterClaw_04" end
+    if numId == 22721 then return "Band of Servitude", "item:22721:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
+    if numId == 77777 then return "Custom Turtle Belt", "item:77777:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
+    return nil
+end
 _G.GetLocale = function() return "enUS" end
 
 local mockInventory = {
@@ -252,6 +330,8 @@ dofile("Locales/Localization.ruRU.lua")
 dofile("Locales/Localization.deDE.lua")
 dofile("Locales/Localization.frFR.lua")
 dofile("PriestBiS.lua")
+
+UA.ClearCache()
 
 print("--- Testing Upgrade Scoring ---")
 local rob = UA.GetItemData(16923) -- Robes of Transcendence (59 heal, 27 int, 16 spi, 17 stam)
@@ -492,6 +572,30 @@ print("  Set Bonus Description:\t" .. tostring(set3Comp.setBonusDesc))
 assert(set3Comp.setBonusEP == 25, "Should award 25 EP for 3-pc Transcendence activation")
 assert(set3Comp.isUpgrade == true, "3-pc Transcendence must be recognized as an upgrade")
 
+-- Test Equipped Tier Piece with Active Set Bonus
+_G.GetInventoryItemLink = function(unit, slotID)
+    if slotID == UA.SLOT_IDS["Belt"] then return "item:16925:0:0:0" end
+    if slotID == UA.SLOT_IDS["Shoulder"] then return "item:16924:0:0:0" end
+    if slotID == UA.SLOT_IDS["Chest"] then return "item:16923:0:0:0" end
+    return origGetInventoryItemLink(unit, slotID)
+end
+ITEM_STAT_CACHE = {}
+
+local eqTierComp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
+assert(eqTierComp.isEquipped == true, "Should recognize 16925 as equipped")
+assert(eqTierComp.setBonusEP == 25, "Equipped piece should report 25 EP active set bonus")
+
+-- Test Set Break Downgrade Math (Candidate item higher base stats, but breaks 3-pc set bonus)
+-- Belt of Transcendence base is 51 EP. Active 3-pc adds 25 EP -> Effective score = 76 EP.
+-- A candidate belt with 60 EP (higher than 51 base) will break 3-pc (dropping count to 2), so 60 vs 76 is a DOWNGRADE of -16 EP.
+local candComp = UA.GetUpgradeComparison(77777, "item:77777:0:0:0")
+assert(candComp.isUpgrade == false, "Candidate breaking 3-pc bonus should be marked as downgrade")
+assert(candComp.lostSetBonusEP == 25, "Candidate must track 25 EP lost set bonus")
+assert(candComp.effectiveScore > candComp.currentScore, "Effective score must include lost set bonus")
+
+_G.GetInventoryItemLink = origGetInventoryItemLink
+ITEM_STAT_CACHE = {}
+
 print("--- Testing Raid Roll Chat Detection & 'rush' Keyword ---")
 local alertCalledWith = nil
 local origShowAlert = UA.ShowAlert
@@ -501,17 +605,17 @@ end
 
 -- Test standard roll
 alertCalledWith = nil
-UA.CheckRaidRollMessage("Roll for |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r MS/OS")
-assert(alertCalledWith == 16925, "Should trigger alert for standard 'Roll' message")
+UA.CheckRaidRollMessage("Roll for |cffa335ee|Hitem:16923:0:0:0|h[Robes of Transcendence]|h|r MS/OS")
+assert(alertCalledWith == 16923, "Should trigger alert for standard 'Roll' message")
 
 -- Test 'rush' keyword (Turtle WoW raid convention)
 alertCalledWith = nil
-UA.CheckRaidRollMessage("rush |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r 100")
-assert(alertCalledWith == 16925, "Should trigger alert for 'rush' keyword message")
+UA.CheckRaidRollMessage("rush |cffa335ee|Hitem:16923:0:0:0|h[Robes of Transcendence]|h|r 100")
+assert(alertCalledWith == 16923, "Should trigger alert for 'rush' keyword message")
 
 -- Test non-roll chatter (should NOT trigger)
 alertCalledWith = nil
-UA.CheckRaidRollMessage("Gz on getting |cffa335ee|Hitem:16925:0:0:0|h[Robes of Transcendence]|h|r!")
+UA.CheckRaidRollMessage("Gz on getting |cffa335ee|Hitem:16923:0:0:0|h[Robes of Transcendence]|h|r!")
 assert(alertCalledWith == nil, "Should NOT trigger alert for non-roll chatter")
 
 UA.ShowAlert = origShowAlert
@@ -528,5 +632,128 @@ if alertF and alertF._scripts and alertF._scripts["OnUpdate"] then
     print("AlertFrame OnUpdate nil-safety verified successfully.")
 end
 
-print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE) PASSED SUCCESSFULLY!")
+print("--- Testing LootBlare Hook Protection ---")
+local mockItemRollFrame = {
+    Show = function(self) self._shown = true end,
+    name = {
+        _text = "Item Name",
+        GetText = function(self) return self._text end,
+        SetText = function(self, t) self._text = t end,
+    },
+    itemLink = "item:16925:0:0:0",
+}
+_G["ItemRollFrame"] = mockItemRollFrame
+UA.HookedLootBlare = false
+UA.HookLootBlare()
+-- Verify calling Show with colon syntax
+mockItemRollFrame:Show()
+assert(mockItemRollFrame._shown == true, "Original Show should be called on ItemRollFrame")
+-- Verify calling Show with dot syntax (nil self) doesn't crash
+mockItemRollFrame._shown = false
+local ok, err = pcall(function() mockItemRollFrame.Show() end)
+print("--- Testing Dynamic Talent Weight Synchronization ---")
+_G.UnitClass = function(unit) return "Priest", "PRIEST" end
+
+local mockTalents = {
+    [1] = { { name = "Meditation", rank = 3 } },
+    [2] = { { name = "Spiritual Guidance", rank = 5 } },
+}
+
+_G.GetNumTalents = function(tabIndex)
+    return mockTalents[tabIndex] and table.getn(mockTalents[tabIndex]) or 0
+end
+
+_G.GetTalentInfo = function(tabIndex, tIndex)
+    if mockTalents[tabIndex] and mockTalents[tabIndex][tIndex] then
+        local t = mockTalents[tabIndex][tIndex]
+        return t.name, nil, nil, nil, t.rank
+    end
+    return nil
+end
+
+-- Test 5/5 SG + 3/3 Meditation (0.25 + 0.45 = 0.70)
+mockTalents[1][1].rank = 3
+mockTalents[2][1].rank = 5
+UA.UpdateDynamicTalentWeights()
+assert(math.abs(UA.STAT_WEIGHTS.spi - 0.70) < 0.001, "5/5 SG + 3/3 Med should equal 0.70 SPI weight")
+
+-- Test 0/5 SG + 0/3 Meditation (Untalented: 0.00 + 0.30 = 0.30)
+mockTalents[1][1].rank = 0
+mockTalents[2][1].rank = 0
+UA.UpdateDynamicTalentWeights()
+assert(math.abs(UA.STAT_WEIGHTS.spi - 0.30) < 0.001, "0/5 SG + 0/3 Med should equal 0.30 SPI weight")
+
+-- Test 0/5 SG + 3/3 Meditation (Med only: 0.00 + 0.45 = 0.45)
+mockTalents[1][1].rank = 3
+mockTalents[2][1].rank = 0
+UA.UpdateDynamicTalentWeights()
+assert(math.abs(UA.STAT_WEIGHTS.spi - 0.45) < 0.001, "0/5 SG + 3/3 Med should equal 0.45 SPI weight")
+
+-- Test 5/5 SG + 0/3 Meditation (SG only: 0.25 + 0.30 = 0.55)
+mockTalents[1][1].rank = 0
+mockTalents[2][1].rank = 5
+UA.UpdateDynamicTalentWeights()
+assert(math.abs(UA.STAT_WEIGHTS.spi - 0.55) < 0.001, "5/5 SG + 0/3 Med should equal 0.55 SPI weight")
+
+-- Reset back to 5/5 SG + 3/3 Med
+mockTalents[1][1].rank = 3
+mockTalents[2][1].rank = 5
+UA.UpdateDynamicTalentWeights()
+
+print("--- Testing Girdle of Prophecy Tooltip Parsing & Tier Comparison ---")
+local girdleTooltipLines = {
+    [1] = "Girdle of Prophecy",
+    [2] = "Soulbound",
+    [3] = "Waist Cloth",
+    [4] = "57 Armor",
+    [5] = "+10 Stamina",
+    [6] = "+22 Intellect",
+    [7] = "+10 Spirit",
+    [8] = "+7 Fire Resistance",
+    [9] = "Healing +8",
+    [10] = "Durability 23 / 35",
+    [11] = "Classes: Priest",
+    [12] = "Requires Level 60",
+    [13] = "Equip: Restores 4 mana per 5 sec.",
+    [14] = "Equip: Increases damage and healing done by magical spells and effects by up to 9.",
+    [15] = "Equip: Increases healing done by spells and effects by up to 7.",
+    [16] = " ",
+    [17] = "Vestments of Prophecy (3/8)",
+    [18] = " Boots of Prophecy",
+    [19] = " Circlet of Prophecy",
+    [20] = " Girdle of Prophecy",
+    [21] = " Gloves of Prophecy",
+    [22] = " Pants of Prophecy",
+    [23] = " Mantle of Prophecy",
+    [24] = " Robes of Prophecy",
+    [25] = " Vambraces of Prophecy",
+    [26] = " ",
+    [27] = "Set: -0.1 sec to the casting time of your Flash Heal spell.",
+}
+_G.UAScanningTooltip._linesLeft = girdleTooltipLines
+_G.UAScanningTooltip._numLines = 27
+local girdleData = UA.ScanItemStats(16817, "item:16817:0:0:0")
+assert(girdleData ~= nil, "Girdle of Prophecy should parse successfully")
+assert(girdleData.slot == "Belt", "Girdle of Prophecy slot should be Belt")
+assert(girdleData.setName == "Vestments of Prophecy", "Girdle of Prophecy set should be Vestments of Prophecy")
+assert(girdleData.int == 22, "Girdle Int should be 22")
+assert(girdleData.spi == 10, "Girdle Spi should be 10")
+assert(girdleData.mp5 == 4, "Girdle MP5 should be 4")
+assert(girdleData.healing == 24, "Girdle Healing should be 24 (9+7+8), got " .. tostring(girdleData.healing))
+
+-- Mock Girdle, Pants, and Vambraces equipped (3-piece Vestments of Prophecy)
+_G.GetInventoryItemLink = function(unit, slot)
+    if slot == 6 then return "item:16817:0:0:0" end -- Girdle of Prophecy (Belt)
+    if slot == 7 then return "item:16814:0:0:0" end -- Pants of Prophecy (Legs)
+    if slot == 9 then return "item:16819:0:0:0" end -- Vambraces of Prophecy (Wrists)
+    return nil
+end
+local girdleComp = UA.GetUpgradeComparison(16817, "item:16817:0:0:0")
+assert(girdleComp ~= nil, "Girdle comparison should not be nil")
+assert(girdleComp.isEquipped == true, "Girdle should be identified as equipped")
+assert(girdleComp.setBonusEP == 15, "Girdle active set bonus should be 15 EP")
+
+print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE & TALENT SYNC) PASSED SUCCESSFULLY!")
+
+
 

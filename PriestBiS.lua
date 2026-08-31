@@ -61,12 +61,12 @@ end
 -- ================================================
 
 UA.STAT_WEIGHTS = {
-    healing = 1.0,         -- Baseline throughput
-    spi = 0.70,            -- 0.25 (Spiritual Guidance) + 0.45 (Meditation FSR regen)
+    healing = 1.0,         -- Baseline throughput (+Healing and +Damage/Healing hybrid gear)
+    spi = 0.70,            -- Dynamic default (5/5 Spiritual Guidance + 3/3 Meditation): 0.30 Base FSR + 0.25 SG + 0.15 Med
     mp5 = 2.20,            -- 1 MP5 = 12 mana/min (~2.2 EP)
     spell_crit = 8.0,      -- 1% Crit = 8.0 EP (Inspiration armor buff uptime + throughput)
     int = 0.22,            -- Mana pool buffer + crit scaling
-    spell_damage = 0.0,    -- Pure shadow/spell damage provides 0 value for Holy
+    spell_damage = 0.0,    -- Pure shadow/spell damage provides 0 throughput for Holy/Disc healing spells
     stamina = 0.05,        -- Small survivability buffer
     armor = 0.0,
 }
@@ -243,10 +243,149 @@ UA.BOSS_DROPS = {
 -- 4. DYNAMIC TOOLTIP SCANNING & STAT RESOLUTION
 -- ================================================
 
+-- Helper to dynamically ensure tooltips support up to 80 lines (Tier sets with 8-pc lists + enchants + stats + EP badges)
+local function EnsureTooltipFontStrings(tt, maxLines)
+    if not tt then return end
+    local name = nil
+    if tt.GetName and type(tt.GetName) == "function" then
+        name = tt:GetName()
+    end
+    if (not name or type(name) ~= "string") and type(tt.name) == "string" then
+        name = tt.name
+    end
+    if not name or type(name) ~= "string" or name == "" then return end
+    maxLines = maxLines or 80
+    for i = 1, maxLines do
+        local leftName = name .. "TextLeft" .. i
+        local fsLeft = getglobal(leftName)
+        if not fsLeft and tt.CreateFontString then
+            fsLeft = tt:CreateFontString(leftName, "ARTWORK", "GameTooltipText")
+            if fsLeft then
+                if fsLeft.SetFontObject and GameFontNormalSmall then
+                    fsLeft:SetFontObject(GameFontNormalSmall)
+                end
+                local prevLeft = getglobal(name .. "TextLeft" .. (i - 1))
+                if prevLeft and fsLeft.SetPoint then
+                    fsLeft:SetPoint("TOPLEFT", prevLeft, "BOTTOMLEFT", 0, -2)
+                end
+            end
+        end
+        local rightName = name .. "TextRight" .. i
+        local fsRight = getglobal(rightName)
+        if not fsRight and tt.CreateFontString then
+            fsRight = tt:CreateFontString(rightName, "ARTWORK", "GameTooltipText")
+            if fsRight then
+                if fsRight.SetFontObject and GameFontNormalSmall then
+                    fsRight:SetFontObject(GameFontNormalSmall)
+                end
+                local prevRight = getglobal(name .. "TextRight" .. (i - 1))
+                if prevRight and fsRight.SetPoint then
+                    fsRight:SetPoint("TOPRIGHT", prevRight, "BOTTOMRIGHT", 0, -2)
+                end
+            end
+        end
+    end
+end
+
+-- Helper to clean up dynamically managed font strings beyond line 30
+local function CleanupCustomTooltipLines(tooltip)
+    if not tooltip then return end
+    local ttName = tooltip.GetName and tooltip:GetName()
+    if ttName and ttName ~= "" then
+        for i = 31, 80 do
+            local left = getglobal(ttName .. "TextLeft" .. i)
+            if left then
+                left:SetText("")
+                left:Hide()
+            end
+            local right = getglobal(ttName .. "TextRight" .. i)
+            if right then
+                right:SetText("")
+                right:Hide()
+            end
+        end
+    end
+    tooltip._uaCustomLineCount = 0
+end
+
+-- Robust line adder that works beyond Vanilla 1.12.1's native 30-line C engine limit
+function UA.AddLine(tooltip, text, r, g, b, wrap)
+    if not tooltip or not text then return end
+    r = r or 1.0
+    g = g or 1.0
+    b = b or 1.0
+
+    local ttName = tooltip.GetName and tooltip:GetName()
+    local nativeCount = (tooltip.NumLines and tooltip:NumLines()) or 0
+    local customCount = tooltip._uaCustomLineCount or 0
+
+    if customCount == 0 and nativeCount < 30 then
+        if tooltip.AddLine then
+            tooltip:AddLine(text, r, g, b)
+        end
+        return
+    end
+
+    if not ttName or ttName == "" then
+        if tooltip.AddLine then
+            tooltip:AddLine(text, r, g, b)
+        end
+        return
+    end
+
+    -- Dynamically manage line beyond native 30-line cap
+    local currentTotal = math.max(nativeCount, 30) + customCount
+    local newLineIndex = currentTotal + 1
+
+    local leftName = ttName .. "TextLeft" .. newLineIndex
+    local fsLeft = getglobal(leftName)
+    if not fsLeft and tooltip.CreateFontString then
+        fsLeft = tooltip:CreateFontString(leftName, "ARTWORK", "GameTooltipText")
+    end
+
+    if not fsLeft then
+        if tooltip.AddLine then
+            tooltip:AddLine(text, r, g, b)
+        end
+        return
+    end
+
+    if fsLeft.SetFontObject and GameFontNormalSmall then
+        fsLeft:SetFontObject(GameFontNormalSmall)
+    end
+    if fsLeft.SetJustifyH then
+        fsLeft:SetJustifyH("LEFT")
+    end
+
+    local prevLeft = getglobal(ttName .. "TextLeft" .. currentTotal)
+    fsLeft:ClearAllPoints()
+    if prevLeft then
+        fsLeft:SetPoint("TOPLEFT", prevLeft, "BOTTOMLEFT", 0, -2)
+    else
+        fsLeft:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 10, -10)
+    end
+
+    fsLeft:SetText(text)
+    fsLeft:SetTextColor(r, g, b)
+    if wrap and fsLeft.SetNonSpaceWrap then
+        fsLeft:SetNonSpaceWrap(true)
+    end
+    fsLeft:Show()
+
+    tooltip._uaCustomLineCount = customCount + 1
+end
+
 local scanTooltip = getglobal("UAScanningTooltip") or CreateFrame("GameTooltip", "UAScanningTooltip", UIParent, "GameTooltipTemplate")
+EnsureTooltipFontStrings(scanTooltip, 80)
 scanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
 
 local ITEM_STAT_CACHE = {}
+
+function UA.ClearCache()
+    for k in pairs(ITEM_STAT_CACHE) do
+        ITEM_STAT_CACHE[k] = nil
+    end
+end
 
 -- Slot string normalization
 local EQUIP_SLOT_MAP = {
@@ -375,7 +514,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
 
     scanTooltip:SetOwner(UIParent, "ANCHOR_NONE")
     scanTooltip:ClearLines()
-    for j = 1, 30 do
+    for j = 1, 80 do
         local l = getglobal("UAScanningTooltipTextLeft" .. j)
         if l then l:SetText("") end
         local r = getglobal("UAScanningTooltipTextRight" .. j)
@@ -404,30 +543,36 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         role = "HEAL",
     }
 
+    -- 1. Query Blizzard engine GetItemInfo first for authoritative slot and item type
+    local linkOrID = rawLink or itemLink or itemID
+    if linkOrID and GetItemInfo then
+        local gName, _, _, _, gItemType, gItemSubType, _, gEquipSlot = GetItemInfo(linkOrID)
+        if gName and gName ~= "" then stats.name = gName end
+        if gItemType and gItemType ~= "" then stats.itemType = gItemType end
+        if gItemSubType and gItemSubType ~= "" then stats.subType = gItemSubType end
+        if gEquipSlot and EQUIP_SLOT_MAP[gEquipSlot] then
+            stats.slot = EQUIP_SLOT_MAP[gEquipSlot]
+        end
+    end
+
+    local function IsSetLine(str)
+        if not str or str == "" then return false end
+        if string.find(str, "%(%d+/%d+%)") then return true end
+        if string.find(str, "Set%s*:") or string.find(str, "%(%d+%)%s*Set") or string.find(str, "%-Set") then return true end
+        if string.find(str, "套装") or string.find(str, "предмет") or string.find(str, "pièce") or string.find(str, "pièces") then return true end
+        return false
+    end
+
     local numLines = tonumber(scanTooltip:NumLines())
     if numLines and numLines > 0 then
         for i = 1, numLines do
             local leftLine = getglobal("UAScanningTooltipTextLeft" .. i)
             local rightLine = getglobal("UAScanningTooltipTextRight" .. i)
-            local text = nil
-            if leftLine then
-                if leftLine.IsShown then
-                    if leftLine:IsShown() then text = leftLine:GetText() end
-                else
-                    text = leftLine:GetText()
-                end
-            end
-            local rText = nil
-            if rightLine then
-                if rightLine.IsShown then
-                    if rightLine:IsShown() then rText = rightLine:GetText() end
-                else
-                    rText = rightLine:GetText()
-                end
-            end
+            local text = leftLine and leftLine.GetText and leftLine:GetText()
+            local rText = rightLine and rightLine.GetText and rightLine:GetText()
 
             if text and text ~= "" then
-                if i == 1 then
+                if i == 1 and stats.name == "" then
                     stats.name = text
                 end
 
@@ -441,68 +586,72 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     end
                 end
 
-                -- Check Class restrictions (English, German, French, Chinese, Russian)
-                local _, _, classStr = string.find(text, "Classes:%s*(.+)")
-                if not classStr then _, _, classStr = string.find(text, "Klassen:%s*(.+)") end
-                if not classStr then _, _, classStr = string.find(text, "Classes%s*:%s*(.+)") end
-                if not classStr then _, _, classStr = string.find(text, "职业[：:]%s*(.+)") end
-                if not classStr then _, _, classStr = string.find(text, "Классы:%s*(.+)") end
-                if not classStr then _, _, classStr = string.find(text, "Класс:%s*(.+)") end
-                if classStr then
-                    stats.restrictedClasses = {}
-                    if string.find(classStr, "Priest") or string.find(classStr, "Priester") or string.find(classStr, "Prêtre") or string.find(classStr, "牧师") or string.find(classStr, "Жрец") then
-                        stats.restrictedClasses["PRIEST"] = true
+                if not IsSetLine(text) then
+                    -- Check Class restrictions (English, German, French, Chinese, Russian)
+                    local _, _, classStr = string.find(text, "Classes:%s*(.+)")
+                    if not classStr then _, _, classStr = string.find(text, "Klassen:%s*(.+)") end
+                    if not classStr then _, _, classStr = string.find(text, "Classes%s*:%s*(.+)") end
+                    if not classStr then _, _, classStr = string.find(text, "职业[：:]%s*(.+)") end
+                    if not classStr then _, _, classStr = string.find(text, "Классы:%s*(.+)") end
+                    if not classStr then _, _, classStr = string.find(text, "Класс:%s*(.+)") end
+                    if classStr then
+                        stats.restrictedClasses = {}
+                        if string.find(classStr, "Priest") or string.find(classStr, "Priester") or string.find(classStr, "Prêtre") or string.find(classStr, "牧师") or string.find(classStr, "Жрец") then
+                            stats.restrictedClasses["PRIEST"] = true
+                        end
+                    end
+
+                    -- Match +Healing and +Spell Damage/Healing (Spell Power)
+                    local valH = ScanStatAcrossLocales(text, "HEALING")
+                    if valH then
+                        stats.healing = stats.healing + valH
+                    else
+                        local valDH = ScanStatAcrossLocales(text, "DAMAGE_HEALING")
+                        if valDH then stats.healing = stats.healing + valDH end
+                    end
+
+                    -- Match Intellect, Spirit, Stamina
+                    local valInt = ScanStatAcrossLocales(text, "INT")
+                    if valInt then stats.int = stats.int + valInt end
+
+                    local valSpi = ScanStatAcrossLocales(text, "SPI")
+                    if valSpi then stats.spi = stats.spi + valSpi end
+
+                    local valStam = ScanStatAcrossLocales(text, "STAM")
+                    if valStam then stats.stam = stats.stam + valStam end
+
+                    -- Match MP5
+                    local valMP5 = ScanStatAcrossLocales(text, "MP5")
+                    if valMP5 then stats.mp5 = stats.mp5 + valMP5 end
+
+                    -- Match Spell Crit
+                    local valCrit = ScanStatAcrossLocales(text, "CRIT")
+                    if valCrit then stats.crit = stats.crit + valCrit end
+
+                    -- Detect slot from tooltip header lines (lines 1 to 6 only, to avoid matching tier set piece listings)
+                    if not stats.slot and i <= 6 then
+                        if string.find(text, "Head") or string.find(text, "头部") or string.find(text, "Голова") or string.find(text, "Kopf") or string.find(text, "Tête") then stats.slot = "Head"
+                        elseif string.find(text, "Neck") or string.find(text, "颈部") or string.find(text, "Шея") or string.find(text, "Hals") or string.find(text, "Cou") then stats.slot = "Neck"
+                        elseif string.find(text, "Shoulder") or string.find(text, "肩部") or string.find(text, "Плечи") or string.find(text, "Schulter") or string.find(text, "Épaule") or string.find(text, "Epaule") then stats.slot = "Shoulder"
+                        elseif string.find(text, "Back") or string.find(text, "Cloak") or string.find(text, "背部") or string.find(text, "披风") or string.find(text, "Спина") or string.find(text, "Плащ") or string.find(text, "Rücken") or string.find(text, "Umhang") or string.find(text, "Dos") or string.find(text, "Cape") then stats.slot = "Back"
+                        elseif string.find(text, "Chest") or string.find(text, "Robe") or string.find(text, "胸部") or string.find(text, "衣服") or string.find(text, "长袍") or string.find(text, "Грудь") or string.find(text, "Brust") or string.find(text, "Torse") then stats.slot = "Chest"
+                        elseif string.find(text, "Wrist") or string.find(text, "Bracer") or string.find(text, "手腕") or string.find(text, "护腕") or string.find(text, "Запястья") or string.find(text, "Наручи") or string.find(text, "Handgelenke") or string.find(text, "Armschienen") or string.find(text, "Poignets") then stats.slot = "Wrists"
+                        elseif string.find(text, "Hands") or string.find(text, "Gloves") or string.find(text, "手") or string.find(text, "手套") or string.find(text, "Кисти рук") or string.find(text, "Перчатки") or string.find(text, "Hände") or string.find(text, "Handschuhe") or string.find(text, "Mains") or string.find(text, "Gants") then stats.slot = "Hands"
+                        elseif string.find(text, "Waist") or string.find(text, "Belt") or string.find(text, "腰部") or string.find(text, "腰带") or string.find(text, "Пояс") or string.find(text, "Taille") or string.find(text, "Gürtel") or string.find(text, "Ceinture") then stats.slot = "Belt"
+                        elseif string.find(text, "Legs") or string.find(text, "Pants") or string.find(text, "腿部") or string.find(text, "裤子") or string.find(text, "Ноги") or string.find(text, "Штаны") or string.find(text, "Beine") or string.find(text, "Hosen") or string.find(text, "Jambes") or string.find(text, "Pantalon") then stats.slot = "Legs"
+                        elseif string.find(text, "Feet") or string.find(text, "Boots") or string.find(text, "脚") or string.find(text, "鞋子") or string.find(text, "Ступни") or string.find(text, "Сапоги") or string.find(text, "Füße") or string.find(text, "Stiefel") or string.find(text, "Pieds") or string.find(text, "Bottes") then stats.slot = "Boots"
+                        elseif string.find(text, "Finger") or string.find(text, "Ring") or string.find(text, "手指") or string.find(text, "戒指") or string.find(text, "Палец") or string.find(text, "Кольцо") or string.find(text, "Doigt") or string.find(text, "Anneau") or string.find(text, "Bague") then stats.slot = "Ring"
+                        elseif string.find(text, "Trinket") or string.find(text, "饰品") or string.find(text, "Аксессуар") or string.find(text, "Schmuck") or string.find(text, "Bijou") then stats.slot = "Trinket"
+                        elseif string.find(text, "Two%-Hand") or string.find(text, "双手") or string.find(text, "Двуручное") or string.find(text, "Zweihändig") or string.find(text, "Deux mains") then stats.slot = "Twohand"
+                        elseif string.find(text, "Main Hand") or string.find(text, "One%-Hand") or string.find(text, "主手") or string.find(text, "单手") or string.find(text, "Правая рука") or string.find(text, "Одноручное") or string.find(text, "Waffenhand") or string.find(text, "Einhand") or string.find(text, "Main droite") or string.find(text, "Une main") then stats.slot = "Mainhand"
+                        elseif string.find(text, "Held In Off%-Hand") or string.find(text, "Off Hand") or string.find(text, "副手") or string.find(text, "左手") or string.find(text, "Левая рука") or string.find(text, "Schildhand") or string.find(text, "En main gauche") then stats.slot = "Offhand"
+                        elseif string.find(text, "Ranged") or string.find(text, "Wand") or string.find(text, "远程") or string.find(text, "魔杖") or string.find(text, "Дальний бой") or string.find(text, "Жезл") or string.find(text, "Distanz") or string.find(text, "Zauberstab") or string.find(text, "À distance") or string.find(text, "Baguette") then stats.slot = "Wand"
+                        end
                     end
                 end
+            end
 
-                -- Match +Healing and +Spell Damage/Healing (Spell Power)
-                local valH = ScanStatAcrossLocales(text, "HEALING")
-                if valH then
-                    stats.healing = stats.healing + valH
-                else
-                    local valDH = ScanStatAcrossLocales(text, "DAMAGE_HEALING")
-                    if valDH then stats.healing = stats.healing + valDH end
-                end
-
-                -- Match Intellect, Spirit, Stamina
-                local valInt = ScanStatAcrossLocales(text, "INT")
-                if valInt then stats.int = stats.int + valInt end
-
-                local valSpi = ScanStatAcrossLocales(text, "SPI")
-                if valSpi then stats.spi = stats.spi + valSpi end
-
-                local valStam = ScanStatAcrossLocales(text, "STAM")
-                if valStam then stats.stam = stats.stam + valStam end
-
-                -- Match MP5
-                local valMP5 = ScanStatAcrossLocales(text, "MP5")
-                if valMP5 then stats.mp5 = stats.mp5 + valMP5 end
-
-                -- Match Spell Crit
-                local valCrit = ScanStatAcrossLocales(text, "CRIT")
-                if valCrit then stats.crit = stats.crit + valCrit end
-
-                -- Detect slot from tooltip left column if not yet found
-                if not stats.slot then
-                    if string.find(text, "Head") or string.find(text, "头部") or string.find(text, "Голова") or string.find(text, "Kopf") or string.find(text, "Tête") then stats.slot = "Head"
-                    elseif string.find(text, "Neck") or string.find(text, "颈部") or string.find(text, "Шея") or string.find(text, "Hals") or string.find(text, "Cou") then stats.slot = "Neck"
-                    elseif string.find(text, "Shoulder") or string.find(text, "肩部") or string.find(text, "Плечи") or string.find(text, "Schulter") or string.find(text, "Épaule") or string.find(text, "Epaule") then stats.slot = "Shoulder"
-                    elseif string.find(text, "Back") or string.find(text, "Cloak") or string.find(text, "背部") or string.find(text, "披风") or string.find(text, "Спина") or string.find(text, "Плащ") or string.find(text, "Rücken") or string.find(text, "Umhang") or string.find(text, "Dos") or string.find(text, "Cape") then stats.slot = "Back"
-                    elseif string.find(text, "Chest") or string.find(text, "Robe") or string.find(text, "胸部") or string.find(text, "衣服") or string.find(text, "长袍") or string.find(text, "Грудь") or string.find(text, "Brust") or string.find(text, "Torse") then stats.slot = "Chest"
-                    elseif string.find(text, "Wrist") or string.find(text, "Bracer") or string.find(text, "手腕") or string.find(text, "护腕") or string.find(text, "Запястья") or string.find(text, "Наручи") or string.find(text, "Handgelenke") or string.find(text, "Armschienen") or string.find(text, "Poignets") then stats.slot = "Wrists"
-                    elseif string.find(text, "Hands") or string.find(text, "Gloves") or string.find(text, "手") or string.find(text, "手套") or string.find(text, "Кисти рук") or string.find(text, "Перчатки") or string.find(text, "Hände") or string.find(text, "Handschuhe") or string.find(text, "Mains") or string.find(text, "Gants") then stats.slot = "Hands"
-                    elseif string.find(text, "Waist") or string.find(text, "Belt") or string.find(text, "腰部") or string.find(text, "腰带") or string.find(text, "Пояс") or string.find(text, "Taille") or string.find(text, "Gürtel") or string.find(text, "Ceinture") then stats.slot = "Belt"
-                    elseif string.find(text, "Legs") or string.find(text, "Pants") or string.find(text, "腿部") or string.find(text, "裤子") or string.find(text, "Ноги") or string.find(text, "Штаны") or string.find(text, "Beine") or string.find(text, "Hosen") or string.find(text, "Jambes") or string.find(text, "Pantalon") then stats.slot = "Legs"
-                    elseif string.find(text, "Feet") or string.find(text, "Boots") or string.find(text, "脚") or string.find(text, "鞋子") or string.find(text, "Ступни") or string.find(text, "Сапоги") or string.find(text, "Füße") or string.find(text, "Stiefel") or string.find(text, "Pieds") or string.find(text, "Bottes") then stats.slot = "Boots"
-                    elseif string.find(text, "Finger") or string.find(text, "Ring") or string.find(text, "手指") or string.find(text, "戒指") or string.find(text, "Палец") or string.find(text, "Кольцо") or string.find(text, "Doigt") or string.find(text, "Anneau") or string.find(text, "Bague") then stats.slot = "Ring"
-                    elseif string.find(text, "Trinket") or string.find(text, "饰品") or string.find(text, "Аксессуар") or string.find(text, "Schmuck") or string.find(text, "Bijou") then stats.slot = "Trinket"
-                    elseif string.find(text, "Two%-Hand") or string.find(text, "双手") or string.find(text, "Двуручное") or string.find(text, "Zweihändig") or string.find(text, "Deux mains") then stats.slot = "Twohand"
-                    elseif string.find(text, "Main Hand") or string.find(text, "One%-Hand") or string.find(text, "主手") or string.find(text, "单手") or string.find(text, "Правая рука") or string.find(text, "Одноручное") or string.find(text, "Waffenhand") or string.find(text, "Einhand") or string.find(text, "Main droite") or string.find(text, "Une main") then stats.slot = "Mainhand"
-                    elseif string.find(text, "Held In Off%-Hand") or string.find(text, "Off Hand") or string.find(text, "副手") or string.find(text, "左手") or string.find(text, "Левая рука") or string.find(text, "Schildhand") or string.find(text, "En main gauche") then stats.slot = "Offhand"
-                    elseif string.find(text, "Ranged") or string.find(text, "Wand") or string.find(text, "远程") or string.find(text, "魔杖") or string.find(text, "Дальний бой") or string.find(text, "Жезл") or string.find(text, "Distanz") or string.find(text, "Zauberstab") or string.find(text, "À distance") or string.find(text, "Baguette") then stats.slot = "Wand"
-                    end
-                end
-            end            if not stats.subType then
+            if not stats.subType and i <= 6 then
                 if rText and rText ~= "" then
                     stats.subType = DetectSubtype(rText)
                 end
@@ -512,7 +661,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
             end
 
             if rText and rText ~= "" then
-                if not stats.slot then
+                if not stats.slot and i <= 6 then
                     if string.find(rText, "Head") or string.find(rText, "头部") or string.find(rText, "Голова") or string.find(rText, "Kopf") or string.find(rText, "Tête") then stats.slot = "Head"
                     elseif string.find(rText, "Neck") or string.find(rText, "颈部") or string.find(rText, "Шея") or string.find(rText, "Hals") or string.find(rText, "Cou") then stats.slot = "Neck"
                     elseif string.find(rText, "Shoulder") or string.find(rText, "肩部") or string.find(rText, "Плечи") or string.find(rText, "Schulter") or string.find(rText, "Épaule") or string.find(rText, "Epaule") then stats.slot = "Shoulder"
@@ -536,7 +685,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
     end
 
     if itemID or itemLink then
-        local name, _, _, _, _, itemType, itemSubType, _, equipSlot = GetItemInfo(itemID or itemLink)
+        local name, _, _, _, itemType, itemSubType, _, equipSlot = GetItemInfo(itemID or itemLink)
         if name and stats.name == "" then stats.name = name end
         if itemType then stats.itemType = itemType end
         if itemSubType and (not stats.subType or stats.subType == "") then stats.subType = itemSubType end
@@ -873,7 +1022,7 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     -- Engine GetItemInfo check
     local linkOrID = itemLink or itemID
     if linkOrID and GetItemInfo then
-        local _, _, _, _, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(linkOrID)
+        local _, _, _, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(linkOrID)
         if itemEquipLoc == "INVTYPE_SHIELD" or itemEquipLoc == "INVTYPE_RELIC" or itemEquipLoc == "INVTYPE_THROWN" or itemEquipLoc == "INVTYPE_AMMO" then
             return false
         end
@@ -1122,6 +1271,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         slot = slot,
         newScore = newScore,
         currentScore = 0,
+        effectiveScore = 0,
         delta = 0,
         pct = nil,
         isUpgrade = false,
@@ -1156,8 +1306,23 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     end
 
     if isEquipped then
+        local activeSetEP = 0
+        local activeSetDesc = nil
+        if itemData.setName and UA.SET_BONUSES[itemData.setName] then
+            local count = UA.GetEquippedSetCount(itemData.setName)
+            for breakpoint, bonusData in pairs(UA.SET_BONUSES[itemData.setName]) do
+                if count >= breakpoint then
+                    activeSetEP = activeSetEP + (bonusData.ep or 0)
+                    activeSetDesc = bonusData.desc
+                end
+            end
+        end
+
         result.isUpgrade = false
         result.currentScore = newScore
+        result.effectiveScore = newScore + activeSetEP
+        result.setBonusEP = activeSetEP
+        result.setBonusDesc = activeSetDesc
         result.currentItemName = itemData.name
         result.delta = 0
         result.reason = format(L["CURRENTLY_EQUIPPED_REASON"], newScore)
@@ -1348,6 +1513,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     local effectiveCurrentScore = currentScore + lostSetBonusEP
     result.replaceSlot = slot
     result.currentScore = currentScore
+    result.effectiveScore = effectiveCurrentScore
     result.currentItemName = currentItem.name or slot
     result.delta = newScore - effectiveCurrentScore
     if effectiveCurrentScore > 0 then
@@ -1356,10 +1522,10 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
     if newScore > effectiveCurrentScore then
         result.isUpgrade = true
-        result.reason = format(L["SCORE_UPGRADE"], currentScore, newScore, result.delta)
+        result.reason = format(L["SCORE_UPGRADE"], effectiveCurrentScore, newScore, result.delta)
     else
         result.isUpgrade = false
-        result.reason = format(L["SCORE_DOWNGRADE"], newScore, currentScore)
+        result.reason = format(L["SCORE_DOWNGRADE"], newScore, effectiveCurrentScore)
     end
     return result
 end
@@ -1537,6 +1703,8 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
     if not tooltip or not link then return end
     if tooltip == getglobal("UAScanningTooltip") then return end
 
+    local tooltipName = tooltip.GetName and tooltip:GetName()
+
     if PriestBiSDB and PriestBiSDB.tooltipAlerts == false then
         return
     end
@@ -1547,59 +1715,58 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
     local comp = UA.GetUpgradeComparison(itemID, link)
     if not comp or not comp.slot then return end
 
-    -- Check if [PriestBiS] is ALREADY in the tooltip
-    local tooltipName = (tooltip.GetName and tooltip:GetName()) or tooltip.name
-    if tooltipName then
-        local num = tooltip.NumLines and tooltip:NumLines()
-        if num and num > 0 then
-            for i = 1, num do
-                local line = getglobal(tooltipName .. "TextLeft" .. i)
-                local text = line and line:GetText()
-                if text and string.find(text, "%[PriestBiS%]") then
-                    return
-                end
-            end
-        end
+    EnsureTooltipFontStrings(tooltip, 80)
+
+    -- Guard against duplicate appends within the same tooltip render
+    if tooltip._uaAppendedLink == link then
+        return
     end
+    tooltip._uaAppendedLink = link
 
     insideAppend = true
 
     if comp.isEquipped then
-        tooltip:AddLine(" ")
-        tooltip:AddLine(format(L["TOOLTIP_EQUIPPED"], comp.newScore, comp.slot), 0.9, 0.9, 0.9)
+        UA.AddLine(tooltip, " ")
+        if comp.setBonusEP and comp.setBonusEP > 0 then
+            UA.AddLine(tooltip, format(L["TOOLTIP_EQUIPPED"], comp.newScore, comp.slot) .. format(" |cff00ff00(+%d Set Bonus)|r", comp.setBonusEP), 0.9, 0.9, 0.9)
+            UA.AddLine(tooltip, format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc or "Set Bonus", comp.setBonusEP), 0, 1, 0)
+        else
+            UA.AddLine(tooltip, format(L["TOOLTIP_EQUIPPED"], comp.newScore, comp.slot), 0.9, 0.9, 0.9)
+        end
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
-            tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
+            UA.AddLine(tooltip, "  " .. breakdown, 0.6, 0.6, 0.6)
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
+            UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
+            UA.AddLine(tooltip, format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     elseif comp.isUpgrade then
-        tooltip:AddLine(" ")
+        UA.AddLine(tooltip, " ")
         local pctStr = comp.pct and format(" / +%.1f%%", comp.pct) or ""
-        tooltip:AddLine(format(L["TOOLTIP_UPGRADE"], comp.delta, pctStr), 0, 1, 0)
+        UA.AddLine(tooltip, format(L["TOOLTIP_UPGRADE"], comp.delta, pctStr), 0, 1, 0)
         
         local replaceTarget = comp.currentItemName or comp.replaceSlot or comp.slot
-        tooltip:AddLine(format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, comp.newScore), 0.9, 0.9, 0.9)
+        local curScoreDisplay = (comp.lostSetBonusEP and comp.lostSetBonusEP > 0) and comp.effectiveScore or comp.currentScore
+        UA.AddLine(tooltip, format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, curScoreDisplay, comp.newScore), 0.9, 0.9, 0.9)
         
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
-            tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
+            UA.AddLine(tooltip, "  " .. breakdown, 0.6, 0.6, 0.6)
         end
         if comp.setBonusDesc then
-            tooltip:AddLine(format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
+            UA.AddLine(tooltip, format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
         end
         if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
-            tooltip:AddLine(format("  |cffff6666Warning: Breaks %s (-%d EP)|r", comp.lostSetBonusDesc or "Set Bonus", comp.lostSetBonusEP), 1, 0.4, 0.4)
+            UA.AddLine(tooltip, format("  |cffff6666Warning: Breaks %s (-%d EP)|r", comp.lostSetBonusDesc or "Set Bonus", comp.lostSetBonusEP), 1, 0.4, 0.4)
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
+            UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
+            UA.AddLine(tooltip, format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     else
         local db = PriestBiSDB
@@ -1608,27 +1775,31 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
             return
         end
 
-        tooltip:AddLine(" ")
+        UA.AddLine(tooltip, " ")
         if comp.roleMismatch then
-            tooltip:AddLine(format(L["TOOLTIP_ROLE_MISMATCH"], comp.reason), 1, 0.4, 0.4)
+            UA.AddLine(tooltip, format(L["TOOLTIP_ROLE_MISMATCH"], comp.reason), 1, 0.4, 0.4)
         elseif comp.delta == 0 then
-            tooltip:AddLine(format(L["TOOLTIP_SIDEGRADE"], comp.newScore, comp.currentItemName or comp.slot), 0.7, 0.7, 0.7)
+            UA.AddLine(tooltip, format(L["TOOLTIP_SIDEGRADE"], comp.newScore, comp.currentItemName or comp.slot), 0.7, 0.7, 0.7)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
             if breakdown and breakdown ~= "" then
-                tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
+                UA.AddLine(tooltip, "  " .. breakdown, 0.6, 0.6, 0.6)
             end
         else
-            tooltip:AddLine(format(L["TOOLTIP_DOWNGRADE"], comp.newScore, comp.currentScore, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
+            local curScoreDisplay = (comp.lostSetBonusEP and comp.lostSetBonusEP > 0) and comp.effectiveScore or comp.currentScore
+            UA.AddLine(tooltip, format(L["TOOLTIP_DOWNGRADE"], comp.newScore, curScoreDisplay, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
             if breakdown and breakdown ~= "" then
-                tooltip:AddLine("  " .. breakdown, 0.6, 0.6, 0.6)
+                UA.AddLine(tooltip, "  " .. breakdown, 0.6, 0.6, 0.6)
+            end
+            if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
+                UA.AddLine(tooltip, format("  |cffff6666Warning: Breaks %s (-%d EP)|r", comp.lostSetBonusDesc or "Set Bonus", comp.lostSetBonusEP), 1, 0.4, 0.4)
             end
         end
         if comp.drop then
-            tooltip:AddLine(format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
+            UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_SOURCE"] .. "|r %s", comp.drop), 0.6, 0.8, 1)
         end
         if comp.note then
-            tooltip:AddLine(format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
+            UA.AddLine(tooltip, format("  |cffffd100" .. L["TOOLTIP_NOTE"] .. "|r %s", comp.note), 1, 0.82, 0)
         end
     end
 
@@ -1636,6 +1807,43 @@ function UA.AppendTooltipUpgradeInfo(tooltip, link)
     if tooltip.Show then
         tooltip:Show()
     end
+
+    -- If custom lines were added beyond native 30 lines, resize the tooltip AFTER Show()
+    if tooltip._uaCustomLineCount and tooltip._uaCustomLineCount > 0 then
+        local ttName = tooltip.GetName and tooltip:GetName()
+        if ttName and ttName ~= "" then
+            local extraHeight = 0
+            local baseLines = math.max((tooltip.NumLines and tooltip:NumLines()) or 0, 30)
+            local lastFs = nil
+            for c = 1, tooltip._uaCustomLineCount do
+                local lineIdx = baseLines + c
+                local fs = getglobal(ttName .. "TextLeft" .. lineIdx)
+                if fs and fs.IsShown and fs:IsShown() then
+                    lastFs = fs
+                    local h = (fs.GetHeight and fs:GetHeight()) or 14
+                    if h < 10 then h = 13 end
+                    extraHeight = extraHeight + h + 2
+                    local w = (fs.GetStringWidth and fs:GetStringWidth()) or 0
+                    if tooltip.GetWidth and tooltip.SetWidth and tooltip:GetWidth() < (w + 24) then
+                        tooltip:SetWidth(w + 24)
+                    end
+                end
+            end
+
+            if extraHeight > 0 and tooltip.GetHeight and tooltip.SetHeight then
+                local newHeight = tooltip:GetHeight() + extraHeight
+                local moneyFrame = getglobal(ttName .. "MoneyFrame")
+                if moneyFrame and moneyFrame.IsVisible and moneyFrame:IsVisible() and lastFs then
+                    moneyFrame:ClearAllPoints()
+                    moneyFrame:SetPoint("TOPLEFT", lastFs, "BOTTOMLEFT", 0, -4)
+                    local mH = (moneyFrame.GetHeight and moneyFrame:GetHeight()) or 16
+                    newHeight = newHeight + mH + 4
+                end
+                tooltip:SetHeight(newHeight)
+            end
+        end
+    end
+
     insideAppend = false
 end
 
@@ -1643,13 +1851,17 @@ local function HookTooltipMethod(tooltip, methodName, getLinkFn)
     local origMethod = tooltip[methodName]
     if origMethod then
         tooltip[methodName] = function(self, a1, a2, a3, a4)
-            local ret = origMethod(self, a1, a2, a3, a4)
+            self._uaAppendedLink = nil
+            CleanupCustomTooltipLines(self)
+            local r1, r2, r3, r4 = origMethod(self, a1, a2, a3, a4)
             local link = getLinkFn(self, a1, a2, a3, a4)
             if link then
                 self._uaLastLink = link
-                UA.AppendTooltipUpgradeInfo(self, link)
+                pcall(function()
+                    UA.AppendTooltipUpgradeInfo(self, link)
+                end)
             end
-            return ret
+            return r1, r2, r3, r4
         end
     end
 end
@@ -1657,12 +1869,15 @@ end
 function UA.HookTooltipFrame(tooltip)
     if not tooltip or tooltip._uaHooked then return end
     tooltip._uaHooked = true
+    EnsureTooltipFontStrings(tooltip, 80)
 
-    -- Hook ClearLines & Hide to reset tracking
+    -- Hook ClearLines & Hide to reset tracking and clean up custom font strings
     local orig_ClearLines = tooltip.ClearLines
     if orig_ClearLines then
         tooltip.ClearLines = function(self)
+            CleanupCustomTooltipLines(self)
             self._uaLastLink = nil
+            self._uaAppendedLink = nil
             return orig_ClearLines(self)
         end
     end
@@ -1670,22 +1885,10 @@ function UA.HookTooltipFrame(tooltip)
     local orig_Hide = tooltip.Hide
     if orig_Hide then
         tooltip.Hide = function(self)
+            CleanupCustomTooltipLines(self)
             self._uaLastLink = nil
+            self._uaAppendedLink = nil
             return orig_Hide(self)
-        end
-    end
-
-    -- Hook Show to guarantee our badge is rendered after all lines are assembled
-    local orig_Show = tooltip.Show
-    if orig_Show then
-        tooltip.Show = function(self)
-            orig_Show(self)
-            if not insideAppend then
-                local link = self._uaLastLink or (self.itemID and ("item:" .. tostring(self.itemID) .. ":0:0:0"))
-                if link then
-                    UA.AppendTooltipUpgradeInfo(self, link)
-                end
-            end
         end
     end
 
@@ -1915,27 +2118,36 @@ function UA.HookLootBlare()
         UA.HookedLootBlare = true
         local origShow = itemRollFrame.Show
         itemRollFrame.Show = function(self)
-            origShow(self)
-            local currentLink = self.itemLink
-            if not currentLink and LootBlare and LootBlare.state then
-                currentLink = LootBlare.state.currentItem
+            local frame = self or itemRollFrame
+            if origShow then
+                origShow(frame)
             end
-            if currentLink then
-                local itemID = UA.GetItemIDFromLink(currentLink)
-                if itemID then
-                    local comp = UA.GetUpgradeComparison(itemID, currentLink)
-                    if comp and comp.isUpgrade then
-                        UA.ShowAlert(itemID, currentLink)
-                        UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["LOOTBLARE_ROLL_ALERT"], comp.newItemName or "Item", comp.delta or 0, comp.pct or 0))
-                        if self.name and self.name.GetText and self.name.SetText then
-                            local curText = self.name:GetText() or ""
-                            if not string.find(curText, "%[UPGRADE") then
-                                self.name:SetText(curText .. format("\n|cff00ff00[UPGRADE +%d EP]|r", comp.delta or 0))
+
+            -- Run PriestBiS evaluation safely in protected call so LootBlare is NEVER disrupted
+            pcall(function()
+                local currentLink = frame.itemLink
+                if not currentLink or currentLink == "" then
+                    if LootBlare and LootBlare.state then
+                        currentLink = LootBlare.state.currentItem
+                    end
+                end
+                if currentLink and currentLink ~= "" then
+                    local itemID = UA.GetItemIDFromLink(currentLink)
+                    if itemID then
+                        local comp = UA.GetUpgradeComparison(itemID, currentLink)
+                        if comp and comp.isUpgrade then
+                            UA.ShowAlert(itemID, currentLink)
+                            UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["LOOTBLARE_ROLL_ALERT"], comp.newItemName or "Item", comp.delta or 0, comp.pct or 0))
+                            if frame.name and frame.name.GetText and frame.name.SetText then
+                                local curText = frame.name:GetText() or ""
+                                if not string.find(curText, "%[UPGRADE") then
+                                    frame.name:SetText(curText .. format("\n|cff00ff00[UPGRADE +%d EP]|r", comp.delta or 0))
+                                end
                             end
                         end
                     end
                 end
-            end
+            end)
         end
     end
 end

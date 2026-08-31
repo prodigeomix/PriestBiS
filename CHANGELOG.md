@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Raid Roll "rush" Keyword Support**: Added `"rush"` keyword recognition to `ROLL_KEYWORDS` to natively support Turtle WoW raid roll conventions (e.g. `rush [Item] 100`).
 - **Spell Power & Healing Scanner Fallback**: Enhanced tooltip scanning engine to parse dual `DAMAGE_HEALING` ("Increases damage and healing done by magical spells...") as a fallback when pure +healing is not listed.
 - **Strict Weapon & Armor Gatekeeping Tables**: Explicit `PRIEST_ARMOR_SLOTS` and `PRIEST_WEAPON_SLOTS` tables to prevent non-armor slots (rings, necks, trinkets, cloaks) and non-weapon slots from triggering false equipability rejections.
-- **Headless Unit Test Suite Expansion**: Added comprehensive test coverage in `tools/test_priest_bis.lua` for 1H mace stat scanning (*Jin'do's Hexxer*), raid roll detection with `"rush"`, non-roll chatter rejection, and alert frame nil-safety.
+- **Dynamic Talent Weight & Multi-Language Unit Tests**: Added comprehensive test coverage in `tools/test_priest_bis.lua` for dynamic *Spiritual Guidance* and *Meditation* scaling across all talent combinations (0.30 to 0.70 EP), 1H mace stat scanning (*Jin'do's Hexxer*), raid roll detection with `"rush"`, non-roll chatter rejection, and alert frame nil-safety.
+- **German Dual-Pattern Tooltip Parsing**: Supported both article variants (*"Erhöht die durch Zauber..."* and *"Erhöht durch Zauber..."*) in `Locales/Localization.deDE.lua`.
 
 ### Fixed
+- **LootBlare Hook Hardening & Exception Isolation**: Refactored `HookLootBlare()` with `pcall` error isolation, colon/dot invocation safety (`frame = self or itemRollFrame`), and nil-safe text setter guards to guarantee master loot UI is never interrupted.
 - **Alert Frame `OnUpdate` Nil-Safety**: Protected `alertFrame._timer` against `nil` `arg1` elapsed time parameters during frame update cycles.
 - **Raid Roll Hyperlink Regex**: Corrected hyperlink regex pattern in `CheckRaidRollMessage` to ensure reliable capture across different client chat channels.
 - **Two-Hand Staff Display in `/pbis gear`**: Fixed slot display when wielding a 2H staff so offhand is cleanly marked `[N/A - 2H Equipped]`.
