@@ -3,7 +3,7 @@
 > **The Intelligent Real-Time Loot, Upgrade & BiS Assistant for Holy and Discipline Priests.**
 
 [![WoW Version](https://img.shields.io/badge/Interface-1.12.1%20%7C%20Turtle%20WoW%201.18.1-blue.svg)](https://turtle-wow.org)
-[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)]()
+[![Version](https://img.shields.io/badge/version-1.3.1-blue.svg)]()
 [![Languages](https://img.shields.io/badge/Languages-enUS%20%7C%20zhCN%20%7C%20ruRU%20%7C%20deDE%20%7C%20frFR-purple.svg)]()
 [![Class](https://img.shields.io/badge/Class-Priest%20(Holy%2FDiscipline)-gold.svg)]()
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
@@ -20,6 +20,7 @@ Most loot addons rely on static, outdated item databases with hardcoded stats th
 - It scans candidate items in real time directly from game tooltips (`GameTooltip` & `ItemRefTooltip`).
 - It syncs with your active talent ranks (*Spiritual Guidance* and *Meditation*) to dynamically calibrate your exact Spirit value across all languages.
 - It detects when a dropping item will complete an active **Set Bonus** (e.g. 3-pc T2 Transcendence 15% in-FSR mana regen) and factors that bonus directly into the upgrade score.
+- It features an automated **Bags & Bank Off-Hand Scanner** that intelligently projects combined 1H + OH scores when wielding a 2H staff.
 - It hooks **LootBlare** and raid roll calls (`/rw`, `/raid`) so you instantly know whether to roll main-spec on a drop.
 - It provides **complete native localization** for English, Simplified Chinese, Russian, German, and French clients.
 
@@ -57,15 +58,19 @@ PriestBiS features an integrated internationalization framework designed for mul
 
 ### 🛡️ 3. Strict Priest Equipability Filtering
 Never see false upgrade alerts on items your Priest cannot wear:
-* **Armor Type Gatekeeping:** Cloth only (`布甲`, `Ткань`, `Stoff`, `Tissu`). Rejects Leather, Mail, Plate, and Shields.
+* **Armor Type Gatekeeping:** Cloth only (`布甲`, `Ткань`, `Stoff`, `Tissu`). Rejects Leather, Mail, Plate, and Shields across all client languages.
 * **Weapon Gatekeeping:** One-Handed Maces, Daggers, Staves, and Wands only. Rejects Swords, Axes, Polearms, 2H Maces, Bows, Guns, and Crossbows.
 * **Class Restriction Parsing:** Automatically respects `Classes: Druid, Shaman, Paladin` (and localized equivalents `职业:`, `Класс:`, `Klassen:`) tooltip restrictions.
 
 ---
 
-### ⚔️ 4. Dual-Slot Matrix & Set Math
+### ⚔️ 4. Dual-Slot Matrix, Set Math & Smart 2H-to-1H Projection
 * **Rings & Trinkets:** Automatically compares candidate items against the **weaker** of your two equipped items (`math.min(score1, score2)`).
-* **Two-Handed Staves vs. Mainhand + Offhand:** When a 2H staff drops, compares its score against your combined $MH + OH$ total. When a 1H weapon drops while wielding a staff, projects your new weapon with your offhand against the staff.
+* **Two-Handed Staves vs. Mainhand + Offhand:** When a 2H staff drops, compares its score against your combined $MH + OH$ total.
+* **Smart 2H-to-1H Projection (Bags & Bank Scanner):** When inspecting a 1H Mace or Dagger while wielding a 2H Staff (where the Off-Hand slot is empty), PriestBiS dynamically pulls your best owned Off-Hand from your **Bags or Bank** and calculates:
+  $$\text{Projected Score} = \text{EP}(\text{Candidate 1H}) + \text{EP}(\text{Best Owned Bag/Bank OH})$$
+  $$\Delta = \text{Projected Score} - \text{EP}(\text{Equipped 2H Staff})$$
+  Renders an informative badge directly in tooltips: `Projected OH: Consecrated Caduceus (+39 EP | Bags)`.
 * **Dynamic Set Bonus Breakpoints:** Recognizes when equipping an item reaches a set breakpoint (e.g. 2 pieces $\to$ 3 pieces of *Vestments of Transcendence* / *卓越法衣* / *Одеяния Превосходства*) and awards the set bonus EP value directly (+25 EP for 3-pc T2).
 
 ---
@@ -76,7 +81,15 @@ Never see false upgrade alerts on items your Priest cannot wear:
 
 ---
 
-### 🔍 6. Deep Mod Interoperability
+### 🎒 6. Bagshui-Inspired Inventory & Bank Architecture
+* **Character & Realm Scoped Storage:** Bank off-hands and settings are automatically scoped by `[Realm][PlayerName]`, keeping alts and cross-realm characters completely isolated.
+* **Full Bank Event Lifecycle:** Listens to `BANKFRAME_OPENED`, `PLAYERBANKSLOTS_CHANGED`, and `PLAYERBANKBAGSLOTS_CHANGED` to ensure real-time cache updates when depositing or withdrawing items at the banker.
+* **Debounced Dirty-Flag Bag Scanning:** Uses a cached inventory scanner flagged on `BAG_UPDATE` to eliminate redundant container iteration during rapid mouse hovering.
+* **Re-entrancy Guard Hardening:** All tooltip rendering logic is executed under protected `pcall` boundaries to guarantee the re-entrancy lock never bricks tooltips on unexpected client errors.
+
+---
+
+### 🔍 7. Deep Mod Interoperability
 * **pfQuest & pfDB Dynamic Drop Source Engine:** Dynamically queries boss names, drop rates, and quest names for Vanilla and Turtle WoW custom items.
 * **AtlasLoot Compatible:** Click any item in AtlasLoot to view instant upgrade comparisons and breakdown stats.
 

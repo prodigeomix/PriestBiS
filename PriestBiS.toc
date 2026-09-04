@@ -10,7 +10,7 @@
 ## Notes-deDE: Echtzeit-Upgrade-Erkennung, Heilungs-EP-Bewertung, Talentsynchronisation und Raid-Würfelalarme für Heilig- & Disziplin-Priester.
 ## Notes-frFR: Détection d'amélioration d'équipement en temps réel, score EP de soin, synchronisation des talents et alertes de tirage en raid.
 ## Author: prodigeomix (Carbon)
-## Version: 1.2.0
+## Version: 1.3.1
 ## SavedVariablesPerCharacter: PriestBiSDB
 ## OptionalDeps: AtlasLoot, pfQuest, pfQuest-turtle, BetterCharacterStats, LootBlare
 
@@ -20,5 +20,14 @@ Locales\Localization.zhCN.lua
 Locales\Localization.ruRU.lua
 Locales\Localization.deDE.lua
 Locales\Localization.frFR.lua
+
+Data\ItemDatabase.lua
+Data\SetBonuses.lua
+
+Core\Engine.lua
+Core\Comparison.lua
+
+UI\AlertFrame.lua
+UI\TooltipHooks.lua
 
 PriestBiS.lua

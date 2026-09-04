@@ -22,6 +22,37 @@ local mockInventory = {
     [18] = "item:19927:0:0:0", -- Mar'li's Touch (Wand)
 }
 _G.GetInventoryItemLink = function(unit, slotId) return mockInventory[slotId] end
+_G.GetRealmName = function() return "TurtleWoW" end
+_G.UnitName = function(unit) return "Carbon" end
+
+local mockBags = {
+    [0] = {
+        [1] = "item:19820:0:0:0", -- Consecrated Caduceus (Offhand in bag 0 slot 1)
+    }
+}
+local mockBank = {
+    [-1] = {
+        [1] = "item:19820:0:0:0", -- Consecrated Caduceus (Offhand in bank)
+    }
+}
+
+_G.GetContainerNumSlots = function(bag)
+    if bag >= 0 and bag <= 4 then return 16 end
+    if bag == -1 then return 24 end
+    if bag >= 5 and bag <= 11 then return 16 end
+    return 0
+end
+
+_G.GetContainerItemLink = function(bag, slot)
+    if mockBags[bag] and mockBags[bag][slot] then
+        return mockBags[bag][slot]
+    end
+    if mockBank[bag] and mockBank[bag][slot] then
+        return mockBank[bag][slot]
+    end
+    return nil
+end
+
 
 local function make_frame(frameType, name)
     local f = {
@@ -63,6 +94,12 @@ local function make_frame(frameType, name)
                 self._linesRight = { "", "", "", "", "", "", "", "", "" }
             elseif link == "item:19958:0:0:0" then
                 self._linesLeft = { "Hazza'rah's Charm of Healing", "Binds when picked up", "Trinket", "Use: Increases the critical effect chance of your Flash Heal and Greater Heal spells by 25%" }
+                self._linesRight = { "", "", "", "" }
+            elseif link == "item:19950:0:0:0" then
+                self._linesLeft = { "Zandalarian Hero Charm", "Binds when picked up", "Trinket", "Classes: Mage, Priest, Warlock", "Requires Level 60", "Use: Increases damage and healing done by magical spells by up to 204. Each time you cast a spell the damage or healing is reduced by 17. Lasts 20 sec." }
+                self._linesRight = { "", "", "", "", "", "" }
+            elseif link == "item:19802:0:0:0" then
+                self._linesLeft = { "Heart of Hakkar", "Binds when picked up", "Unique", "This Item Begins a Quest" }
                 self._linesRight = { "", "", "", "" }
             elseif link == "item:19406:0:0:0" then
                 self._linesLeft = { "Drake Fang Talisman", "Binds when picked up", "Trinket", "+56 Attack Power" }
@@ -113,7 +150,15 @@ local function make_frame(frameType, name)
                 self._linesLeft = { "Robes of Transcendence", "Vestments of Transcendence (1/8)", "Chest", "+27 Intellect", "+17 Stamina", "+16 Spirit", "Increases healing done by spells and effects by up to 59" }
                 self._linesRight = { "", "", "Cloth", "", "", "", "" }
 
-            -- Chinese items
+            elseif link == "item:19998:0:0:0" then
+                self._linesLeft = { "Gri'lek's Blood", "Major Mojo Infusion (1/2)", "Finger", "+10 Intellect", "+8 Spirit", "Increases healing done by spells and effects by up to 18" }
+                self._linesRight = { "", "", "", "", "", "" }
+            elseif link == "item:19999:0:0:0" then
+                self._linesLeft = { "Renataki's Soul", "Major Mojo Infusion (1/2)", "Finger", "+10 Intellect", "+8 Spirit", "Increases healing done by spells and effects by up to 18" }
+                self._linesRight = { "", "", "", "", "", "" }
+            elseif link == "item:16926:0:0:0" then
+                self._linesLeft = { "Bindings of Transcendence", "Vestments of Transcendence (1/8)", "Wrist", "+10 Intellect", "+14 Spirit", "+8 Stamina", "Increases healing done by spells and effects by up to 24" }
+                self._linesRight = { "", "", "Cloth", "", "", "", "" }
             elseif link == "item:88001:0:0:0" then
                 self._linesLeft = { "卓越法衣", "卓越法衣 (2/8)", "胸部", "+27 智力", "+16 精神", "+17 耐力", "提高法术所造成的治疗效果，最多59点", "每5秒回复4点法力值" }
                 self._linesRight = { "", "", "布甲", "", "", "", "", "" }
@@ -184,7 +229,16 @@ local function make_frame(frameType, name)
         RegisterEvent = function(...) end,
         UnregisterEvent = function(...) end,
         SetAlpha = function(...) end,
-        SetScript = function(...) end,
+        SetScript = function(self, script, handler)
+            self._scripts = self._scripts or {}
+            self._scripts[script] = handler
+        end,
+        GetPoint = function(self)
+            return self._point or "CENTER", nil, self._relPoint or "CENTER", self._x or 0, self._y or 120
+        end,
+        ClearAllPoints = function(self) end,
+        StartMoving = function(self) end,
+        StopMovingOrSizing = function(self) end,
         SetFrameLevel = function(...) end,
         SetClampedToScreen = function(...) end,
         CreateFontString = function(self)
@@ -286,6 +340,9 @@ _G.GetItemInfo = function(id)
     if numId == 19406 then return "Drake Fang Talisman", "item:19406:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_TRINKET", "Interface\\Icons\\INV_Misc_MonsterClaw_04" end
     if numId == 22721 then return "Band of Servitude", "item:22721:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
     if numId == 77777 then return "Custom Turtle Belt", "item:77777:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
+    if numId == 19998 then return "Gri'lek's Blood", "item:19998:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
+    if numId == 19999 then return "Renataki's Soul", "item:19999:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
+    if numId == 16926 then return "Bindings of Transcendence", "item:16926:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WRIST", "Interface\\Icons\\INV_Bracer_07" end
     return nil
 end
 _G.GetLocale = function() return "enUS" end
@@ -310,6 +367,37 @@ local mockInventory = {
     [18] = "item:19927:0:0:0", -- Mar'li's Touch (Wand)
 }
 _G.GetInventoryItemLink = function(unit, slotId) return mockInventory[slotId] end
+_G.GetRealmName = function() return "TurtleWoW" end
+_G.UnitName = function(unit) return "Carbon" end
+
+local mockBags = {
+    [0] = {
+        [1] = "item:19820:0:0:0", -- Consecrated Caduceus (Offhand in bag 0 slot 1)
+    }
+}
+local mockBank = {
+    [-1] = {
+        [1] = "item:19820:0:0:0", -- Consecrated Caduceus (Offhand in bank)
+    }
+}
+
+_G.GetContainerNumSlots = function(bag)
+    if bag >= 0 and bag <= 4 then return 16 end
+    if bag == -1 then return 24 end
+    if bag >= 5 and bag <= 11 then return 16 end
+    return 0
+end
+
+_G.GetContainerItemLink = function(bag, slot)
+    if mockBags[bag] and mockBags[bag][slot] then
+        return mockBags[bag][slot]
+    end
+    if mockBank[bag] and mockBank[bag][slot] then
+        return mockBank[bag][slot]
+    end
+    return nil
+end
+
 _G.GetNumLootItems = function() return 0 end
 _G.GetLootSlotInfo = function(i) return nil end
 _G.GetLootSlotLink = function(i) return nil end
@@ -322,13 +410,19 @@ _G.UIErrorsFrame = { AddMessage = function(...) end }
 _G.DEFAULT_CHAT_FRAME = { AddMessage = function(self, msg) print("[CHAT] " .. tostring(msg)) end }
 _G.SlashCmdList = {}
 
--- Load Localization stack & PriestBiS
+-- Load Localization stack & PriestBiS Modular Files
 dofile("Locales/Localization.lua")
 dofile("Locales/Localization.enUS.lua")
 dofile("Locales/Localization.zhCN.lua")
 dofile("Locales/Localization.ruRU.lua")
 dofile("Locales/Localization.deDE.lua")
 dofile("Locales/Localization.frFR.lua")
+dofile("Data/ItemDatabase.lua")
+dofile("Data/SetBonuses.lua")
+dofile("Core/Engine.lua")
+dofile("Core/Comparison.lua")
+dofile("UI/AlertFrame.lua")
+dofile("UI/TooltipHooks.lua")
 dofile("PriestBiS.lua")
 
 UA.ClearCache()
@@ -344,6 +438,47 @@ local haz = UA.GetItemData(19958)
 local hazScore = UA.GetItemScore(haz)
 print("Hazza'rah EP Score (EP Override): " .. hazScore)
 assert(hazScore == 120, "Hazza'rah should have 120 EP override")
+
+print("--- Testing Zandalarian Hero Charm & Heart of Hakkar (Tier S) ---")
+local zhc = UA.GetItemData(19950)
+local zhcScore = UA.GetItemScore(zhc)
+print("Zandalarian Hero Charm EP Score (EP Override): " .. zhcScore)
+assert(zhcScore == 90, "ZHC should have 90 EP override")
+assert(zhc.tier == "S", "ZHC should be Tier S")
+
+local zhcComp = UA.GetUpgradeComparison(19950)
+print("ZHC Upgrade Check: " .. tostring(zhcComp.isUpgrade) .. " (+ " .. tostring(zhcComp.delta) .. " EP vs " .. tostring(zhcComp.currentItemName) .. ")")
+assert(zhcComp.isUpgrade == true, "ZHC (90 EP) should be an upgrade over equipped 65 EP trinket")
+assert(zhcComp.delta == 25, "ZHC delta should be +25 EP")
+
+local heart = UA.GetItemData(19802)
+local heartScore = UA.GetItemScore(heart)
+print("Heart of Hakkar EP Score: " .. heartScore)
+assert(heartScore == 90, "Heart of Hakkar should inherit 90 EP")
+assert(heart.slot == "Trinket", "Heart of Hakkar should evaluate as Trinket slot")
+
+local heartComp = UA.GetUpgradeComparison(19802)
+print("Heart of Hakkar Upgrade Check: " .. tostring(heartComp.isUpgrade) .. " (isEquipped=" .. tostring(heartComp.isEquipped) .. ")")
+assert(heartComp.isUpgrade == true, "Heart of Hakkar should be an upgrade when ZHC is not yet equipped")
+
+-- Test duplicate prevention when ZHC is equipped
+mockInventory[13] = "item:19950:0:0:0"
+local heartCompWhenEquipped = UA.GetUpgradeComparison(19802)
+print("Heart of Hakkar Duplicate Check when ZHC equipped: isEquipped=" .. tostring(heartCompWhenEquipped.isEquipped) .. ", isUpgrade=" .. tostring(heartCompWhenEquipped.isUpgrade))
+assert(heartCompWhenEquipped.isEquipped == true, "Heart of Hakkar should recognize rewardID 19950 is already equipped")
+assert(heartCompWhenEquipped.isUpgrade == false, "Heart of Hakkar should not recommend rolling if ZHC is already equipped")
+mockInventory[13] = "item:58231:0:0:0" -- restore Penchant of Humility
+
+-- Verify Hakkar Boss Drops
+local hakkarDrops = UA.BOSS_DROPS["Hakkar"]
+local hasHeart = false
+local hasZHC = false
+for _, id in ipairs(hakkarDrops) do
+    if id == 19802 then hasHeart = true end
+    if id == 19950 then hasZHC = true end
+end
+assert(hasHeart, "Hakkar boss drops should include Heart of Hakkar (19802)")
+assert(hasZHC, "Hakkar boss drops should include Zandalarian Hero Charm (19950)")
 
 print("--- Testing Drake Fang Talisman (Melee Role) ---")
 local isUpg, reason = UA.IsUpgrade(19406)
@@ -567,12 +702,15 @@ ITEM_STAT_CACHE = {}
 
 local set3Comp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
 print("3-Piece Transcendence Set Bonus Activation Check:")
-print("  New Score (with +25 EP Set Bonus):\t" .. tostring(set3Comp.newScore))
-print("  Set Bonus Description:\t" .. tostring(set3Comp.setBonusDesc))
+print("  Base Item Score (unmutated):\t" .. tostring(set3Comp.newScore))
+print("  Set Bonus EP:\t" .. tostring(set3Comp.setBonusEP))
+print("  Net Delta:\t" .. tostring(set3Comp.delta))
+assert(set3Comp.newScore == 51, "Base score must remain 51 EP (unmutated by set bonus)")
 assert(set3Comp.setBonusEP == 25, "Should award 25 EP for 3-pc Transcendence activation")
+assert(set3Comp.delta == 16, "Net upgrade must be 51 base - 60 current + 25 set bonus = 16 EP")
 assert(set3Comp.isUpgrade == true, "3-pc Transcendence must be recognized as an upgrade")
 
--- Test Equipped Tier Piece with Active Set Bonus
+-- Test Equipped Tier Piece with Active Set Bonus (Pure score & effective score check)
 _G.GetInventoryItemLink = function(unit, slotID)
     if slotID == UA.SLOT_IDS["Belt"] then return "item:16925:0:0:0" end
     if slotID == UA.SLOT_IDS["Shoulder"] then return "item:16924:0:0:0" end
@@ -583,7 +721,9 @@ ITEM_STAT_CACHE = {}
 
 local eqTierComp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
 assert(eqTierComp.isEquipped == true, "Should recognize 16925 as equipped")
+assert(eqTierComp.newScore == 51, "Equipped piece base score must remain 51 EP")
 assert(eqTierComp.setBonusEP == 25, "Equipped piece should report 25 EP active set bonus")
+assert(eqTierComp.effectiveScore == 76, "Equipped effective score must be 51 base + 25 set bonus = 76 EP")
 
 -- Test Set Break Downgrade Math (Candidate item higher base stats, but breaks 3-pc set bonus)
 -- Belt of Transcendence base is 51 EP. Active 3-pc adds 25 EP -> Effective score = 76 EP.
@@ -591,7 +731,47 @@ assert(eqTierComp.setBonusEP == 25, "Equipped piece should report 25 EP active s
 local candComp = UA.GetUpgradeComparison(77777, "item:77777:0:0:0")
 assert(candComp.isUpgrade == false, "Candidate breaking 3-pc bonus should be marked as downgrade")
 assert(candComp.lostSetBonusEP == 25, "Candidate must track 25 EP lost set bonus")
-assert(candComp.effectiveScore > candComp.currentScore, "Effective score must include lost set bonus")
+assert(candComp.effectiveScore == 76, "Effective score must be 51 + 25 = 76 EP")
+assert(candComp.delta == -46, "Net delta must be 30 - 76 = -46 EP")
+
+-- Test Set Completion with Pieces in Bags
+_G.GetInventoryItemLink = function(unit, slotID)
+    return nil -- No tier pieces equipped
+end
+ITEM_STAT_CACHE = {}
+UA.bagCacheDirty = false
+UA.cachedBagSetPieces = {
+    ["Vestments of Transcendence"] = {
+        ["Shoulder"] = { slot = "Shoulder", setName = "Vestments of Transcendence" },
+        ["Chest"] = { slot = "Chest", setName = "Vestments of Transcendence" },
+    }
+}
+
+local bagSetComp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
+print("Transcendence Set Completion from Bags Check:")
+print("  Set Bonus EP:\t" .. tostring(bagSetComp.setBonusEP))
+print("  From Bags Flag:\t" .. tostring(bagSetComp.fromBags))
+assert(bagSetComp.setBonusEP == 25, "Should award 25 EP set bonus completing 3-pc with bag pieces")
+assert(bagSetComp.fromBags == true, "fromBags flag must be true when completing set via bags")
+assert(bagSetComp.isUpgrade == true, "Must be an upgrade")
+UA.cachedBagSetPieces = nil
+
+-- Test Major Mojo Infusion ZG Ring Dual-Slot Replacement
+_G.GetInventoryItemLink = function(unit, slotID)
+    if slotID == UA.SLOT_IDS["Ring1"] then return "item:19998:0:0:0" end -- Gri'lek's Blood (Major Mojo Infusion)
+    if slotID == UA.SLOT_IDS["Ring2"] then return "item:22721:0:0:0" end -- Band of Servitude (non-set)
+    return nil
+end
+ITEM_STAT_CACHE = {}
+
+local zgRingComp = UA.GetUpgradeComparison(19999, "item:19999:0:0:0") -- Renataki's Soul (Major Mojo Infusion)
+print("Major Mojo Infusion ZG Ring Replacement Check:")
+print("  Target Slot:\t" .. tostring(zgRingComp.replaceSlot))
+print("  Set Bonus EP:\t" .. tostring(zgRingComp.setBonusEP))
+print("  Is Upgrade:\t" .. tostring(zgRingComp.isUpgrade))
+assert(zgRingComp.replaceSlot == "Ring2", "Must choose Ring2 to replace non-set ring and complete 2-pc set")
+assert(zgRingComp.setBonusEP == 21, "Must activate 2-pc Major Mojo Infusion (+21 EP)")
+assert(zgRingComp.isUpgrade == true, "2-pc ZG ring completion must be an upgrade")
 
 _G.GetInventoryItemLink = origGetInventoryItemLink
 ITEM_STAT_CACHE = {}
@@ -620,10 +800,10 @@ assert(alertCalledWith == nil, "Should NOT trigger alert for non-roll chatter")
 
 UA.ShowAlert = origShowAlert
 
-print("--- Testing Alert Frame OnUpdate Nil-Safety ---")
+print("--- Testing Alert Frame OnUpdate Nil-Safety & Position Persistence ---")
 -- Test toggle/show and verify OnUpdate handler runs cleanly when arg1 is nil
 UA.ShowAlert(19958)
-local alertF = _G["PriestBiS_AlertFrame"]
+local alertF = _G["PriestBiSAlertFrame"] or _G["PriestBiS_AlertFrame"]
 if alertF and alertF._scripts and alertF._scripts["OnUpdate"] then
     _G.arg1 = nil
     -- Executing OnUpdate with nil arg1 should not raise an error
@@ -632,25 +812,68 @@ if alertF and alertF._scripts and alertF._scripts["OnUpdate"] then
     print("AlertFrame OnUpdate nil-safety verified successfully.")
 end
 
-print("--- Testing LootBlare Hook Protection ---")
+-- Test drag stop position persistence
+if alertF and alertF._scripts and alertF._scripts["OnDragStop"] then
+    alertF._point = "TOPLEFT"
+    alertF._relPoint = "TOPLEFT"
+    alertF._x = 42
+    alertF._y = -84
+    alertF._scripts["OnDragStop"]()
+    assert(PriestBiSDB and PriestBiSDB.alertPos, "alertPos should be saved to PriestBiSDB on drag stop")
+    assert(PriestBiSDB.alertPos.x == 42 and PriestBiSDB.alertPos.y == -84, "Saved coordinates should match")
+    print("AlertFrame position persistence on drag stop verified.")
+end
+
+print("--- Testing LootBlare Hook Protection & Real-Time OnUpdate Latency Catch ---")
+local alertCount = 0
+local origShowAlert = UA.ShowAlert
+UA.ShowAlert = function(id, link)
+    alertCount = alertCount + 1
+end
+
 local mockItemRollFrame = {
     Show = function(self) self._shown = true end,
+    IsShown = function(self) return self._shown end,
     name = {
         _text = "Item Name",
         GetText = function(self) return self._text end,
         SetText = function(self, t) self._text = t end,
     },
-    itemLink = "item:16925:0:0:0",
+    itemLink = nil,
+    _scripts = {},
+    SetScript = function(self, name, handler) self._scripts[name] = handler end,
+    GetScript = function(self, name) return self._scripts[name] end,
 }
 _G["ItemRollFrame"] = mockItemRollFrame
 UA.HookedLootBlare = false
 UA.HookLootBlare()
--- Verify calling Show with colon syntax
+
+-- 1. Simulate Show() when itemLink is nil (async item query pending)
 mockItemRollFrame:Show()
 assert(mockItemRollFrame._shown == true, "Original Show should be called on ItemRollFrame")
--- Verify calling Show with dot syntax (nil self) doesn't crash
-mockItemRollFrame._shown = false
-local ok, err = pcall(function() mockItemRollFrame.Show() end)
+assert(alertCount == 0, "ShowAlert should not fire while itemLink is nil")
+
+-- 2. Simulate OnUpdate() after async query resolves itemLink
+mockItemRollFrame.itemLink = "item:19958:0:0:0"
+local onUpdateFn = mockItemRollFrame:GetScript("OnUpdate")
+assert(onUpdateFn ~= nil, "OnUpdate hook should be registered")
+_G["this"] = mockItemRollFrame
+onUpdateFn()
+assert(alertCount == 1, "ShowAlert should fire immediately upon itemLink resolution in OnUpdate")
+
+-- 3. Simulate subsequent OnUpdate ticks (ensure no duplicate alerts)
+onUpdateFn()
+assert(alertCount == 1, "ShowAlert should only fire once per item roll")
+
+-- Test CHAT_MSG_LOOT self-filtering
+alertCount = 0
+UA.CheckLootChatMessage("Bob receives loot: item:19958:0:0:0.")
+assert(alertCount == 0, "Third-party loot messages should NOT trigger upgrade alert popups")
+
+UA.CheckLootChatMessage("You receive loot: item:19958:0:0:0.")
+assert(alertCount == 1, "Self loot message SHOULD trigger upgrade alert")
+
+UA.ShowAlert = origShowAlert
 print("--- Testing Dynamic Talent Weight Synchronization ---")
 _G.UnitClass = function(unit) return "Priest", "PRIEST" end
 
@@ -752,6 +975,149 @@ local girdleComp = UA.GetUpgradeComparison(16817, "item:16817:0:0:0")
 assert(girdleComp ~= nil, "Girdle comparison should not be nil")
 assert(girdleComp.isEquipped == true, "Girdle should be identified as equipped")
 assert(girdleComp.setBonusEP == 15, "Girdle active set bonus should be 15 EP")
+
+-- --- Testing 2H Staff Equipped vs 1H Candidate with Bag/Bank Off-Hand ---
+print("--- Testing 2H Staff Equipped vs 1H Candidate with Bag/Bank Off-Hand ---")
+_G.GetInventoryItemLink = function(unit, slot)
+    if slot == 16 then return "item:20258:0:0:0" end -- Zulian Ceremonial Staff (Twohand, 71 Heal)
+    if slot == 17 then return nil end -- Offhand empty because 2H equipped
+    return nil
+end
+ITEM_STAT_CACHE = {}
+
+local bagOH = UA.ScanBagsForBestOffhand()
+assert(bagOH ~= nil, "ScanBagsForBestOffhand should find Consecrated Caduceus")
+assert(bagOH.score > 0, "Bag off-hand score should be > 0")
+
+local bankOH = UA.ScanBankForBestOffhand()
+assert(bankOH ~= nil, "ScanBankForBestOffhand should find bank off-hand")
+assert(PriestBiSDB ~= nil and PriestBiSDB.bestBankOffhand ~= nil, "PriestBiSDB.bestBankOffhand should be cached")
+
+local bestAvailOH = UA.GetBestAvailableOffhand()
+assert(bestAvailOH ~= nil, "GetBestAvailableOffhand should return best OH")
+
+local mh2hComp = UA.GetUpgradeComparison(22406, "item:22406:0:0:0")
+assert(mh2hComp ~= nil, "Mainhand vs 2H comparison should return valid result")
+assert(mh2hComp.projectedOH ~= nil, "mh2hComp should include projectedOH")
+assert(mh2hComp.isUpgrade == true, "Redemption + Bag/Bank OH should be an upgrade over 2H Staff")
+assert(mh2hComp.delta > 40, "Upgrade delta should reflect 1H + projected OH vs 2H staff")
+
+-- --- Testing Bagshui-Inspired Character Scoping & Dirty-Flag Debouncing ---
+print("--- Testing Bagshui-Inspired Character Scoping & Dirty-Flag Debouncing ---")
+_G.GetRealmName = function() return "TurtleWoW" end
+_G.UnitName = function(u) return "Carbon" end
+local charData = UA.GetCharacterData()
+assert(charData ~= nil, "GetCharacterData should return character profile")
+assert(PriestBiSDB.characters["TurtleWoW"]["Carbon"] ~= nil, "Character profile should be scoped by realm and name")
+
+-- Test dirty flag
+UA.bagCacheDirty = false
+UA.cachedBagOffhand = { name = "Cached Caduceus", score = 39.8, source = "Bags" }
+local cachedOH = UA.ScanBagsForBestOffhand()
+assert(cachedOH.name == "Cached Caduceus", "ScanBagsForBestOffhand should return cached item when not dirty")
+
+UA.bagCacheDirty = true
+local rescannedOH = UA.ScanBagsForBestOffhand()
+assert(rescannedOH.name == "Consecrated Caduceus", "ScanBagsForBestOffhand should rescan when dirty")
+
+-- Test bank update event simulation and Bank Container 11 scanning
+assert(UA.BANK_CONTAINERS[table.getn(UA.BANK_CONTAINERS)] == 11, "BANK_CONTAINERS must include slot 11")
+mockBank[11] = { [1] = "item:19820:0:0:0" }
+mockBank[-1][1] = nil
+charData.bestBankOffhand = nil
+UA.ScanBankForBestOffhand()
+assert(charData.bestBankOffhand ~= nil, "Bank offhand in bag 11 should be detected and stored in charData")
+assert(charData.bestBankOffhand.score > 0, "Stored bank offhand from bag 11 should have positive score")
+
+-- --- Testing insideAppend Re-entrancy Guard Hardening & Fault Recovery ---
+print("--- Testing insideAppend Re-entrancy Guard Hardening & Fault Recovery ---")
+local testTT = make_frame("GameTooltip", "TestFaultTooltip")
+testTT.origRender = UA.RenderTooltipLines
+UA.RenderTooltipLines = function(tooltip, link, comp)
+    error("Simulated tooltip rendering fault!")
+end
+
+-- Call AppendTooltipUpgradeInfo with throwing render
+UA.AppendTooltipUpgradeInfo(testTT, "item:22406:0:0:0")
+
+-- Restore RenderTooltipLines
+UA.RenderTooltipLines = testTT.origRender
+
+-- Verify that subsequent tooltip calls STILL work (insideAppend was reset properly)
+testTT._uaAppendedLink = nil
+UA.AppendTooltipUpgradeInfo(testTT, "item:22406:0:0:0")
+assert(testTT._uaLastLink == "item:22406:0:0:0", "insideAppend must reset to false after error, allowing subsequent tooltips to render")
+
+-- --- Testing Curated Raid Quest Tokens & On-Use Trinkets ---
+print("--- Testing Curated Raid Quest Tokens & On-Use Trinkets ---")
+local eyeDivData = UA.GetItemData(18646)
+assert(eyeDivData ~= nil, "The Eye of Divinity must have item data")
+assert(eyeDivData.slot == "Twohand", "The Eye of Divinity should map to Twohand slot")
+assert(UA.GetItemScore(eyeDivData) == 215, "The Eye of Divinity should have 215 EP override (Benediction)")
+
+local onyHeadData = UA.GetItemData(19002)
+assert(onyHeadData ~= nil, "Head of Onyxia must have item data")
+assert(onyHeadData.slot == "Trinket", "Head of Onyxia should map to Trinket slot")
+assert(UA.GetItemScore(onyHeadData) == 85, "Head of Onyxia should have 85 EP override (Shard of the Scale)")
+
+local nefHeadData = UA.GetItemData(19003)
+assert(nefHeadData ~= nil, "Head of Nefarian must have item data")
+assert(nefHeadData.slot == "Ring", "Head of Nefarian should map to Ring slot")
+assert(UA.GetItemScore(nefHeadData) == 74, "Head of Nefarian should have 74 EP override (Pure Elementium Band)")
+
+local dmcData = UA.GetItemData(19288)
+assert(dmcData ~= nil and UA.GetItemScore(dmcData) == 90, "DMC Blue Dragon should have 90 EP")
+
+local eotdData = UA.GetItemData(23047)
+assert(eotdData ~= nil and UA.GetItemScore(eotdData) == 130, "Eye of the Dead should have 130 EP")
+
+local scarabData = UA.GetItemData(21625)
+assert(scarabData ~= nil and UA.GetItemScore(scarabData) == 80, "Scarab Brooch should have 80 EP")
+
+local marliTrinket = UA.GetItemData(19930)
+assert(marliTrinket ~= nil and UA.GetItemScore(marliTrinket) == 45, "Mar'li's Eye should have 45 EP")
+
+-- Test upgrade comparison with quest starter token
+local compEye = UA.GetUpgradeComparison(18646)
+assert(compEye ~= nil and compEye.slot == "Twohand", "Eye of Divinity comparison should evaluate against Twohand / MH+OH")
+
+-- --- Testing Universal Role Mismatch for Non-Trinket Items ---
+print("--- Testing Universal Role Mismatch for Non-Trinket Items ---")
+local meleeRingComp = UA.GetUpgradeComparison(22722)
+assert(meleeRingComp ~= nil, "Band of Servitude should return comparison")
+assert(meleeRingComp.roleMismatch == true, "Melee ring (Band of Servitude) must be flagged as roleMismatch")
+assert(meleeRingComp.isUpgrade == false, "Melee ring must not be considered an upgrade")
+assert(string.find(meleeRingComp.reason, "MELEE"), "Reason should mention MELEE role")
+
+local tankRingComp = UA.GetUpgradeComparison(55123)
+assert(tankRingComp ~= nil, "Rupturan's Seal should return comparison")
+assert(tankRingComp.roleMismatch == true, "Tank ring (Rupturan's Seal) must be flagged as roleMismatch")
+assert(tankRingComp.isUpgrade == false, "Tank ring must not be considered an upgrade")
+assert(string.find(tankRingComp.reason, "TANK"), "Reason should mention TANK role")
+
+-- --- Testing pfDB Drop Rate Sorting ---
+print("--- Testing pfDB Drop Rate Sorting ---")
+_G.pfDB = {
+    items = {
+        data = {
+            [99901] = {
+                U = {
+                    [101] = 0.001, -- 0.1% trash mob
+                    [102] = 0.25,  -- 25.0% boss
+                }
+            }
+        }
+    },
+    units = {
+        enUS = {
+            [101] = "Crypt Ghoul",
+            [102] = "Clawlord Howlfang",
+        }
+    }
+}
+local sortedSource = UA.GetItemSourceFromPfDB(99901)
+assert(sortedSource ~= nil, "Source should resolve")
+assert(string.find(sortedSource, "Clawlord Howlfang"), "Highest rate boss should be listed first in sortedSource: " .. tostring(sortedSource))
 
 print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE & TALENT SYNC) PASSED SUCCESSFULLY!")
 

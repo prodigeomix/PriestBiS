@@ -63,6 +63,12 @@ local files = {
     "Locales/Localization.ruRU.lua",
     "Locales/Localization.deDE.lua",
     "Locales/Localization.frFR.lua",
+    "Data/ItemDatabase.lua",
+    "Data/SetBonuses.lua",
+    "Core/Engine.lua",
+    "Core/Comparison.lua",
+    "UI/AlertFrame.lua",
+    "UI/TooltipHooks.lua",
     "PriestBiS.lua"
 }
 

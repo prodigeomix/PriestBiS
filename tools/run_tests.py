@@ -14,6 +14,7 @@ multi-language regex patterns, database integrity, and Lua functional simulation
 6. tools/validate_item_database.py(Item metadata, stat weights & set bonus integrity)
 7. tools/validate_lua.lua         (Standalone TOC load & syntax verification)
 8. tools/test_priest_bis.lua      (Full functional simulation & multi-language test suite)
+9. tools/test_performance.lua     (CPU profiling, memoization & performance benchmarks)
 
 Returns exit code 0 if all checks pass, 1 if any check fails.
 """
@@ -38,6 +39,7 @@ CHECKS = [
     ("Database Integrity (validate_item_database.py)", [sys.executable, os.path.join(SCRIPT_DIR, "validate_item_database.py")]),
     ("TOC Syntax Validator (validate_lua.lua)", ["lua", os.path.join(SCRIPT_DIR, "validate_lua.lua")]),
     ("Simulation Suite (test_priest_bis.lua)", ["lua", os.path.join(SCRIPT_DIR, "test_priest_bis.lua")]),
+    ("Performance Benchmark (test_performance.lua)", ["lua", os.path.join(SCRIPT_DIR, "test_performance.lua")]),
 ]
 
 def main():

@@ -35,8 +35,19 @@ def scan_file(filepath):
     with open(filepath, 'r', encoding='utf-8', errors='ignore') as f:
         content = f.read()
 
-    # Find local declarations
-    local_vars = set(re.findall(r'local\s+([A-Za-z_][A-Za-z0-9_]*)', content))
+    # Find local declarations (including comma-separated lists: local a, b, c)
+    local_vars = set()
+    for decl in re.findall(r'local\s+([^=;\n]+)', content):
+        decl = decl.strip()
+        if not decl.startswith('function'):
+            for var in decl.split(','):
+                v = var.strip()
+                if v and re.match(r'^[A-Za-z_][A-Za-z0-9_]*$', v):
+                    local_vars.add(v)
+        else:
+            m = re.search(r'function\s+([A-Za-z_][A-Za-z0-9_]*)', decl)
+            if m:
+                local_vars.add(m.group(1))
     
     # Find parameters
     params = re.findall(r'function\s*[A-Za-z0-9_:\.]*\s*\((.*?)\)', content)
@@ -80,12 +91,13 @@ def scan_file(filepath):
 def main():
     print("Scanning PriestBiS Lua files for global scope leaks...")
     all_ok = True
-    lua_files = [os.path.join(ADDON_DIR, 'PriestBiS.lua')]
-    locales_dir = os.path.join(ADDON_DIR, 'Locales')
-    if os.path.exists(locales_dir):
-        for f in os.listdir(locales_dir):
+    lua_files = []
+    for root, _, files in os.walk(ADDON_DIR):
+        if "tools" in root or ".git" in root:
+            continue
+        for f in files:
             if f.endswith('.lua'):
-                lua_files.append(os.path.join(locales_dir, f))
+                lua_files.append(os.path.join(root, f))
 
     for f in sorted(lua_files):
         if not scan_file(f):

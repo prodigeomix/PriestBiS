@@ -5,7 +5,7 @@
 local _G = _G or getfenv(0)
 _G._G = _G
 PriestBiS = PriestBiS or {}
-local PB = PriestBiS
+local UA = PriestBiS
 
 PriestBiS.Locales = PriestBiS.Locales or {}
 PriestBiS.Patterns = PriestBiS.Patterns or {}
