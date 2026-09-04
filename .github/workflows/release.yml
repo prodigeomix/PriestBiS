@@ -19,6 +19,9 @@ jobs:
         cp PriestBiS.lua PriestBiS/
         cp PriestBiS.toc PriestBiS/
         cp -r Locales PriestBiS/
+        cp -r Data PriestBiS/
+        cp -r Core PriestBiS/
+        cp -r UI PriestBiS/
         cp LICENSE PriestBiS/
         cp README.md PriestBiS/
         cp CHANGELOG.md PriestBiS/
