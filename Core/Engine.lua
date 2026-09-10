@@ -265,7 +265,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         stam = 0,
         mp5 = 0,
         crit = 0,
-        role = "HEAL",
+        role = nil,
     }
 
     -- 1. Query Blizzard engine GetItemInfo first for authoritative slot and item type
@@ -334,7 +334,15 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                         stats.healing = stats.healing + valH
                     else
                         local valDH = ScanStatAcrossLocales(text, "DAMAGE_HEALING")
-                        if valDH then stats.healing = stats.healing + valDH end
+                        if valDH then
+                            stats.healing = stats.healing + valDH
+                        else
+                            -- Pure spell damage (no healing component) — marks item as DPS
+                            local valDmg = ScanStatAcrossLocales(text, "DAMAGE_ONLY")
+                            if valDmg then
+                                stats.spell_damage = stats.spell_damage + valDmg
+                            end
+                        end
                     end
 
                     -- Match Intellect, Spirit, Stamina
@@ -518,7 +526,7 @@ function UA.GetItemData(itemID, itemLink, slotID)
             itemData = {
                 name = meta.name or ("Item #" .. itemID),
                 slot = meta.slot or "Trinket",
-                role = meta.role or "HEAL",
+                role = meta.role,
                 tier = meta.tier or "S",
                 ep_override = meta.ep_override,
                 drop = meta.drop,
@@ -539,6 +547,12 @@ function UA.GetItemData(itemID, itemLink, slotID)
         if meta.drop then itemData.drop = meta.drop end
         if meta.note then itemData.note = meta.note end
         if meta.rewardID then itemData.rewardID = meta.rewardID end
+    end
+
+    -- Stat-based role inference for items without explicit metadata role
+    -- If item has pure spell damage but no healing, it's a DPS item (not healer gear)
+    if not itemData.role and itemData.spell_damage and itemData.spell_damage > 0 and itemData.healing == 0 then
+        itemData.role = "DPS"
     end
 
     if not itemData.drop and itemID then
@@ -750,6 +764,24 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     if linkOrID and GetItemInfo then
         local _, _, _, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(linkOrID)
         if itemEquipLoc == "INVTYPE_SHIELD" or itemEquipLoc == "INVTYPE_RELIC" or itemEquipLoc == "INVTYPE_THROWN" or itemEquipLoc == "INVTYPE_AMMO" then
+            return false
+        end
+
+        -- Cross-check: verify GetItemInfo equipLoc is consistent with resolved slot.
+        -- If the item's engine-reported equip location doesn't map to our resolved slot,
+        -- the tooltip scan may have misread the slot (e.g. a Shield misread as Offhand).
+        if itemEquipLoc and itemData.equipLoc and itemEquipLoc ~= itemData.equipLoc then
+            -- Allow INVTYPE_HOLDABLE to resolve as Offhand (legitimate mapping)
+            local compatible = (itemEquipLoc == "INVTYPE_HOLDABLE" and slot == "Offhand")
+            if not compatible then
+                return false
+            end
+        end
+
+        -- For trinkets: verify the item actually occupies the trinket inventory slot.
+        -- Some class-specific trinkets may slip past the Classes: tooltip parser;
+        -- a non-trinket equipLoc means the item is miscategorized.
+        if slot == "Trinket" and itemEquipLoc and itemEquipLoc ~= "INVTYPE_TRINKET" then
             return false
         end
 

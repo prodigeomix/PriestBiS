@@ -1119,6 +1119,114 @@ local sortedSource = UA.GetItemSourceFromPfDB(99901)
 assert(sortedSource ~= nil, "Source should resolve")
 assert(string.find(sortedSource, "Clawlord Howlfang"), "Highest rate boss should be listed first in sortedSource: " .. tostring(sortedSource))
 
+-- --- Testing Non-Equipable Items Not Shown As Upgrades (Bug Fix) ---
+print("--- Testing Non-Equipable Items Rejected As Upgrades ---")
+
+-- Save originals
+local origSetHyperlink = _G.UAScanningTooltip.SetHyperlink
+local origGetItemInfo = _G.GetItemInfo
+local origNumLines = _G.UAScanningTooltip.NumLines
+
+-- Test 1: Class-restricted item (Warrior-only) should not be shown as upgrade
+-- This item has "Classes: Warrior, Rogue" on tooltip (Priest NOT listed)
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99990:0:0:0" then
+        self._linesLeft = { "Gauntlets of Might", "Binds when picked up", "Hands", "+20 Strength", "+10 Stamina", "Classes: Warrior, Rogue" }
+        self._linesRight = { "", "", "Plate", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 7 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99990 then
+        return "Gauntlets of Might", "item:99990:0:0:0", 3, 60, "Armor", "Plate", 1, "INVTYPE_HAND", "Interface\\Icons\\INV_Gauntlets_04"
+    end
+    return origGetItemInfo(id)
+end
+local warriorGauntletsComp = UA.GetUpgradeComparison(99990, "item:99990:0:0:0")
+print("Warrior-Only Gauntlets Equip Check:\t" .. tostring(warriorGauntletsComp.isUpgrade) .. "\t-\t" .. tostring(warriorGauntletsComp.reason))
+assert(warriorGauntletsComp.isUpgrade == false, "Warrior-only plate gauntlets must NOT be an upgrade for Priest")
+assert(warriorGauntletsComp.roleMismatch == true, "Warrior-only gauntlets must be flagged as roleMismatch")
+
+-- Test 2: DPS trinket with spell damage but no healing (not for priests via stats)
+-- This simulates a caster DPS trinket with +damage but no +healing
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99991:0:0:0" then
+        self._linesLeft = { "Static Shock Module", "Binds when picked up", "Trinket", "+15 Spell Damage" }
+        self._linesRight = { "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 4 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99991 then
+        return "Static Shock Module", "item:99991:0:0:0", 3, 60, "Armor", "Cloth", 1, "INVTYPE_TRINKET", "Interface\\Icons\\INV_Trinket_05"
+    end
+    return origGetItemInfo(id)
+end
+ITEM_STAT_CACHE = {}
+local dpsTrinketComp = UA.GetUpgradeComparison(99991, "item:99991:0:0:0")
+print("DPS Trinket (Spell Dmg only) Equip Check:\t" .. tostring(dpsTrinketComp.isUpgrade) .. "\t-\t" .. tostring(dpsTrinketComp.reason))
+assert(dpsTrinketComp.isUpgrade == false, "DPS trinket with spell damage but no healing must NOT be an upgrade for Priest")
+assert(dpsTrinketComp.roleMismatch == true, "DPS trinket must be flagged as roleMismatch")
+
+-- Test 3: Non-Priest class specific trinket (Classes: Warlock only)
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99992:0:0:0" then
+        self._linesLeft = { "Essence of the Phantomseal", "Binds when picked up", "Trinket", "Classes: Warlock", "+20 Spell Damage" }
+        self._linesRight = { "", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 5 end
+ITEM_STAT_CACHE = {}
+local warlockTrinketComp = UA.GetUpgradeComparison(99992, "item:99992:0:0:0")
+print("Warlock-Only Trinket Equip Check:\t" .. tostring(warlockTrinketComp.isUpgrade) .. "\t-\t" .. tostring(warlockTrinketComp.reason))
+assert(warlockTrinketComp.isUpgrade == false, "Warlock-only trinket must NOT be an upgrade for Priest")
+assert(warlockTrinketComp.roleMismatch == true, "Warlock-only trinket must be flagged as roleMismatch")
+
+-- Test 4: Non-Priest armor (Leather) with healing stats should still be rejected
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99993:0:0:0" then
+        self._linesLeft = { "Shadowcraft Helm", "Binds when picked up", "Head", "+20 Agility", "+10 Stamina", "+20 Healing", "Classes: Rogue, Druid" }
+        self._linesRight = { "", "", "Leather", "", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 7 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99993 then
+        return "Shadowcraft Helm", "item:99993:0:0:0", 3, 60, "Armor", "Leather", 1, "INVTYPE_HEAD", "Interface\\Icons\\INV_Helmet_03"
+    end
+    return origGetItemInfo(id)
+end
+ITEM_STAT_CACHE = {}
+local leatherHelmComp = UA.GetUpgradeComparison(99993, "item:99993:0:0:0")
+print("Leather Helm (Class-Restricted) Equip Check:\t" .. tostring(leatherHelmComp.isUpgrade) .. "\t-\t" .. tostring(leatherHelmComp.reason))
+assert(leatherHelmComp.isUpgrade == false, "Leather helm (Druid/Rogue only) must NOT be an upgrade for Priest")
+assert(leatherHelmComp.roleMismatch == true, "Leather helm must be flagged as roleMismatch")
+
+-- Restore originals
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+_G.UAScanningTooltip.NumLines = origNumLines
+_G.GetItemInfo = origGetItemInfo
+
+-- --- Testing Non-Equipable Items Rejected As Upgrades (Bug Fix) ---
 print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE & TALENT SYNC) PASSED SUCCESSFULLY!")
 
 

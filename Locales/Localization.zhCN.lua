@@ -95,6 +95,10 @@ PriestBiS:RegisterPatterns("zhCN", {
         "%+(%d+) 法术强度",
         "%+(%d+) 法术能量",
     },
+    DAMAGE_ONLY = {
+        "%+(%d+) 法术伤害",
+        "(%d+) 法术伤害",
+    },
     INT = {
         "%+(%d+) 智力",
         "(%d+) 智力",

@@ -89,6 +89,10 @@ PriestBiS:RegisterPatterns("frFR", {
         "%+(%d+) aux dégâts et aux soins des sorts",
         "%+(%d+) Puissance des sorts",
     },
+    DAMAGE_ONLY = {
+        "%+(%d+) Dégâts des sorts",
+        "(%d+) Dégâts des sorts",
+    },
     INT = {
         "%+(%d+) Intelligence",
         "(%d+) Intelligence",

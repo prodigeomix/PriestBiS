@@ -400,15 +400,18 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     end
 
     -- --------------------------------------------
-    -- ROLE MISMATCH CHECK (Curated non-healer gear)
+    -- ROLE MISMATCH CHECK (Non-healer gear)
     -- --------------------------------------------
-    if itemData.role and itemData.role ~= "HEAL" then
+    -- nil role is treated as HEAL-compatible (stat-based DPS items get role="DPS"
+    -- via stat heuristic in GetItemData; metadata non-HEAL roles are merged from ITEM_METADATA)
+    local effectiveRole = itemData.role or "HEAL"
+    if effectiveRole ~= "HEAL" then
         result.roleMismatch = true
         result.isUpgrade = false
         if slot == "Trinket" then
-            result.reason = format(L["NON_HEALER_TRINKET"], itemData.role)
+            result.reason = format(L["NON_HEALER_TRINKET"], effectiveRole)
         else
-            result.reason = format(L["NON_HEALER_ITEM"] or "Non-healer item (%s)", itemData.role)
+            result.reason = format(L["NON_HEALER_ITEM"] or "Non-healer item (%s)", effectiveRole)
         end
         return result
     end
@@ -438,10 +441,11 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     -- TRINKETS: Role check + Min-Score replacement
     -- --------------------------------------------
     if slot == "Trinket" then
-        if itemData.role and itemData.role ~= "HEAL" then
+        local trinketRole = itemData.role or "HEAL"
+        if trinketRole ~= "HEAL" then
             result.roleMismatch = true
             result.isUpgrade = false
-            result.reason = format(L["NON_HEALER_TRINKET"], itemData.role)
+            result.reason = format(L["NON_HEALER_TRINKET"], trinketRole)
             return result
         end
 

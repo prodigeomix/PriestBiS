@@ -90,6 +90,12 @@ PriestBiS:RegisterPatterns("deDE", {
         "%+(%d+) Schaden und Heilung",
         "%+(%d+) Zaubermacht",
     },
+    DAMAGE_ONLY = {
+        "%+(%d+) Zauberschaden",
+        "%+(%d+) Schaden$",
+        "(%d+) Zauberschaden",
+        "(%d+) Schaden$",
+    },
     INT = {
         "%+(%d+) Intelligenz",
         "(%d+) Intelligenz",

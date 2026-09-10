@@ -96,6 +96,12 @@ PriestBiS:RegisterPatterns("enUS", {
         "Damage and Healing %+(%d+)",
         "Spell Damage %+(%d+)",
     },
+    DAMAGE_ONLY = {
+        "%+(%d+) Spell Damage",
+        "%+(%d+) Damage$",
+        "(%d+) Spell Damage",
+        "(%d+) Damage$",
+    },
     INT = {
         "%+(%d+) Intellect",
         "(%d+) Intellect",
