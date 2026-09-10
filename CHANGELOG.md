@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.2] - 2026-09-10
+
+### Fixed
+- **Non-Priest Equipment Showing as Upgrades**: Items that priests cannot equip (class-restricted plate/mail/chain, other-class trinkets) were incorrectly flagged as upgrades. Three root causes fixed:
+  - Changed default `role` from `"HEAL"` to `nil` in `ScanItemStats`/`GetItemData`, preventing non-healer items from bypassing role mismatch checks.
+  - Added `DAMAGE_ONLY` pattern tables across all 5 locales (enUS, zhCN, ruRU, deDE, frFR) to detect pure `+Spell Damage` items (DPS gear without +healing), enabling stat-based role inference to `role = "DPS"`.
+  - Added `GetItemInfo` equipLoc cross-check in `IsItemEquipableByPriest` so trinkets and armor without `restrictedClasses` metadata are still validated against priest-valid equip slots.
+
+### Added
+- **Stat-Based Role Inference**: New `DAMAGE_ONLY` localization pattern tables and `spell_damage` field in stat scanner to distinguish healer items from caster DPS items.
+- **Equip Location Validation**: `IsItemEquipableByPriest` now calls `GetItemInfo` to verify the item's `equipLoc` against known priest-valid slots (INVTYPE_*), catching items that lack tooltip class-restriction lines.
+- **4 New Test Cases**: Warrior-only plate gauntlets, DPS trinket with pure spell damage, Warlock-only trinket, Druid/Rogue leather helm with healing stats.
+
+### Changed
+- `Core/Comparison.lua`: Role mismatch check now uses `effectiveRole = itemData.role or "HEAL"` to catch items that scanned with no explicit role but have DPS stats.
+
+---
+
 ## [1.3.1] - 2026-09-04
 
 ### Added
