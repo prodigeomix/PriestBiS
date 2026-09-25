@@ -66,19 +66,35 @@ function UA.CheckLootChatMessage(message)
     if not message then return end
     local isSelfLoot = false
     local lower = string.lower(message)
-    if string.find(lower, "you receive") or string.find(message, "你获得") or string.find(message, "你得到")
+    if ((string.find(lower, "you receive") or string.find(lower, "you have received")) and not string.find(lower, "receives"))
+       or string.find(message, "你获得") or string.find(message, "你得到")
        or string.find(message, "Ваша добыча") or string.find(message, "Вы получаете")
-       or string.find(lower, "ihr erhaltet") or string.find(lower, "vous recevez") then
+       or (string.find(lower, "ihr erhaltet") and not string.find(lower, "erhält"))
+       or (string.find(lower, "vous recevez") and not string.find(lower, "reçoit")) then
         isSelfLoot = true
     end
 
     if isSelfLoot then
-        for itemID in string.gfind(message, "item:(%d+):") do
-            itemID = tonumber(itemID)
+        local foundLink = false
+        for itemLink in string.gfind(message, "(|c%x+|Hitem:[%d:-]+|h%[[^%]]+%]|h|r)") do
+            foundLink = true
+            local itemID = UA.GetItemIDFromLink(itemLink)
             if itemID then
-                local isUpgrade = UA.IsUpgrade(itemID)
+                local isUpgrade = UA.IsUpgrade(itemID, itemLink)
                 if isUpgrade then
-                    UA.ShowAlert(itemID)
+                    UA.ShowAlert(itemID, itemLink)
+                end
+            end
+        end
+
+        if not foundLink then
+            for itemID in string.gfind(message, "item:(%d+):") do
+                itemID = tonumber(itemID)
+                if itemID then
+                    local isUpgrade = UA.IsUpgrade(itemID)
+                    if isUpgrade then
+                        UA.ShowAlert(itemID)
+                    end
                 end
             end
         end
@@ -191,7 +207,9 @@ function UA.CheckRaidRollMessage(message)
     end
 
     if isRollCall then
+        local foundLink = false
         for itemLink in string.gfind(message, "(|c%x+|Hitem:[%d:-]+|h%[[^%]]+%]|h|r)") do
+            foundLink = true
             local itemID = UA.GetItemIDFromLink(itemLink)
             if itemID then
                 local comp = UA.GetUpgradeComparison(itemID, itemLink)
@@ -199,6 +217,35 @@ function UA.CheckRaidRollMessage(message)
                     UA.ShowAlert(itemID, itemLink)
                     local pctStr = comp.pct and format(" / +%.1f%%", comp.pct) or ""
                     UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["ROLL_ALERT_TITLE"], itemLink, comp.delta or 0, pctStr))
+                end
+            end
+        end
+
+        if not foundLink then
+            for itemLink in string.gfind(message, "(|Hitem:[%d:-]+|h%[[^%]]+%]|h)") do
+                foundLink = true
+                local itemID = UA.GetItemIDFromLink(itemLink)
+                if itemID then
+                    local comp = UA.GetUpgradeComparison(itemID, itemLink)
+                    if comp and comp.isUpgrade then
+                        UA.ShowAlert(itemID, itemLink)
+                        local pctStr = comp.pct and format(" / +%.1f%%", comp.pct) or ""
+                        UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["ROLL_ALERT_TITLE"], itemLink, comp.delta or 0, pctStr))
+                    end
+                end
+            end
+        end
+
+        if not foundLink then
+            for itemID in string.gfind(message, "item:(%d+)") do
+                itemID = tonumber(itemID)
+                if itemID then
+                    local comp = UA.GetUpgradeComparison(itemID)
+                    if comp and comp.isUpgrade then
+                        UA.ShowAlert(itemID)
+                        local pctStr = comp.pct and format(" / +%.1f%%", comp.pct) or ""
+                        UA_Print(format("|cffffd100%s|r " .. L["ROLL_NOW"], L["ROLL_ALERT_TITLE"], comp.newItemName or "Item", comp.delta or 0, pctStr))
+                    end
                 end
             end
         end
@@ -255,8 +302,12 @@ eventFrame:SetScript("OnEvent", function()
         UA.UpdateDynamicTalentWeights()
     elseif event == "BAG_UPDATE" or (event == "UNIT_INVENTORY_CHANGED" and (not arg1 or arg1 == "player")) then
         UA.bagCacheDirty = true
+        UA.cachedBagOffhand = nil
+        UA.cachedBagMainhand = nil
+        UA.cachedBagSetPieces = nil
     elseif event == "BANKFRAME_OPENED" or event == "PLAYERBANKSLOTS_CHANGED" or event == "PLAYERBANKBAGSLOTS_CHANGED" then
         UA.ScanBankForBestOffhand()
+        UA.ScanBankForBestMainhand()
     elseif event == "LOOT_OPENED" then
         UA.CheckLootWindow()
     elseif event == "CHAT_MSG_LOOT" then

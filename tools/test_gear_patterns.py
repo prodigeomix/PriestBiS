@@ -24,6 +24,8 @@ STAT_TO_CATEGORY = {
     "stam": "STAM",
     "mp5": "MP5",
     "crit": "CRIT",
+    "casting_regen": "CASTING_REGEN",
+    "haste": "HASTE",
 }
 
 TEST_CASES = {
@@ -36,6 +38,8 @@ TEST_CASES = {
         ("+27 Intellect", "int", 27),
         ("+16 Stamina", "stam", 16),
         ("Increases damage and healing done by magical spells and effects by up to 20.", "spell_damage", 20),
+        ("Allows 5% of your Mana regeneration to continue while casting.", "casting_regen", 5),
+        ("Increases your attack and casting speed by 1%.", "haste", 1),
     ],
     "zhCN": [
         ("提高法术所造成的治疗效果，最多55点。", "healing", 55),
@@ -44,6 +48,8 @@ TEST_CASES = {
         ("提高所有法术和魔法效果所造成的伤害和治疗效果，最多20点。", "spell_damage", 20),
         ("+27 智力", "int", 27),
         ("+16 耐力", "stam", 16),
+        ("使你在施法时仍保持15%的法力回复速度", "casting_regen", 15),
+        ("提高你的攻击和施法速度1%", "haste", 1),
     ],
     "ruRU": [
         ("Увеличивает эффект лечения заклинаний на 55.", "healing", 55),
@@ -51,6 +57,8 @@ TEST_CASES = {
         ("Восполнение 6 маны каждые 5 сек.", "mp5", 6),
         ("+27 к интеллекту", "int", 27),
         ("+16 к выносливости", "stam", 16),
+        ("Позволяет 5% вашей скорости восстановления маны действовать во время применения заклинаний", "casting_regen", 5),
+        ("Увеличивает вашу скорость атаки и применения заклинаний на 1%", "haste", 1),
     ],
     "deDE": [
         ("Erhöht durch Zauber und Effekte verursachte Heilung um bis zu 55.", "healing", 55),
@@ -58,6 +66,8 @@ TEST_CASES = {
         ("Stellt alle 5 Sek. 6 Mana wieder her.", "mp5", 6),
         ("+27 Intelligenz", "int", 27),
         ("+16 Ausdauer", "stam", 16),
+        ("Ermöglicht es, dass 5% Eurer Manaregeneration beim Zauberwirken weiterlaufen", "casting_regen", 5),
+        ("Erhöht Euer Angriffs- und Zaubertempo um 1%", "haste", 1),
     ],
     "frFR": [
         ("Augmente les soins prodigués par les sorts et les effets d'un maximum de 55", "healing", 55),
@@ -65,6 +75,8 @@ TEST_CASES = {
         ("Rend 6 points de mana toutes les 5 sec.", "mp5", 6),
         ("+27 Intelligence", "int", 27),
         ("+16 Endurance", "stam", 16),
+        ("Permet à 5% de votre récupération de mana de continuer pendant l'incantation", "casting_regen", 5),
+        ("Augmente votre vitesse d'attaque et d'incantation de 1%", "haste", 1),
     ]
 }
 

@@ -27,46 +27,97 @@ local L = PriestBiS.L or setmetatable({}, {
 PriestBiS.L = L
 
 -- ================================================
--- OFF-HAND SCANNING & INVENTORY BACKING
+-- OFF-HAND & MAIN-HAND SCANNING & INVENTORY BACKING
 -- ================================================
 
 UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
 
--- Scan player's bags (0..4) for the best Off-Hand item with dirty-flag debouncing
-function UA.ScanBagsForBestOffhand()
-    if not UA.bagCacheDirty and UA.cachedBagOffhand ~= nil then
-        return UA.cachedBagOffhand
+-- Unified bag scan for Best Offhand, Best 1H Mainhand, and Set Pieces with dirty-flag debouncing
+function UA.ScanAllBags()
+    if not UA.bagCacheDirty and UA.cachedBagOffhand ~= nil and UA.cachedBagMainhand ~= nil and UA.cachedBagSetPieces ~= nil then
+        return
     end
-    if not GetContainerNumSlots or not GetContainerItemLink then return nil end
-    local best = nil
-    local bestScore = -1
 
-    local numBags = table.getn(UA.BAG_CONTAINERS)
-    for b = 1, numBags do
-        local bag = UA.BAG_CONTAINERS[b]
-        local numSlots = GetContainerNumSlots(bag) or 0
-        for slot = 1, numSlots do
-            local link = GetContainerItemLink(bag, slot)
-            if link then
-                local itemData = UA.GetItemData(nil, link)
-                if itemData and (itemData.slot == "Offhand" or itemData.equipLoc == "INVTYPE_HOLDABLE") then
-                    local score = UA.GetItemScore(itemData)
-                    if score > bestScore then
-                        bestScore = score
-                        best = {
-                            name = itemData.name or "Offhand",
-                            link = link,
-                            score = score,
-                            source = L["SOURCE_BAGS"] or "Bags"
-                        }
+    local bestOH = nil
+    local bestOHScore = -1
+    local bestMH = nil
+    local bestMHScore = -1
+    local setPieces = {}
+
+    if GetContainerNumSlots and GetContainerItemLink then
+        local numBags = table.getn(UA.BAG_CONTAINERS)
+        for b = 1, numBags do
+            local bag = UA.BAG_CONTAINERS[b]
+            local numSlots = GetContainerNumSlots(bag) or 0
+            for slot = 1, numSlots do
+                local link = GetContainerItemLink(bag, slot)
+                if link then
+                    local _, _, idStr, _, sufStr = string.find(link, "item:(%d+):([%-%d]+):([%-%d]+)")
+                    local baseLink = link
+                    if idStr then
+                        baseLink = "item:" .. idStr .. ":0:" .. (sufStr or "0") .. ":0"
+                    end
+                    local itemData = UA.GetItemData(nil, baseLink)
+                    if itemData and UA.IsItemEquipableByPriest(itemData, nil, baseLink) then
+                        local effRole = itemData.role or "HEAL"
+                        local score = UA.GetItemScore(itemData)
+
+                        -- Candidate Offhand: Must be HEAL role and have positive score
+                        if (itemData.slot == "Offhand" or itemData.equipLoc == "INVTYPE_HOLDABLE") and effRole == "HEAL" and score > 0 then
+                            if score > bestOHScore then
+                                bestOHScore = score
+                                bestOH = {
+                                    name = itemData.name or "Offhand",
+                                    link = link,
+                                    score = score,
+                                    source = L["SOURCE_BAGS"] or "Bags"
+                                }
+                            end
+                        end
+
+                        -- Candidate 1H Mainhand: Must be 1H weapon, HEAL role, and have positive score
+                        if (itemData.slot == "Mainhand" or itemData.equipLoc == "INVTYPE_WEAPON" or itemData.equipLoc == "INVTYPE_WEAPONMAINHAND") and effRole == "HEAL" and score > 0 then
+                            if score > bestMHScore then
+                                bestMHScore = score
+                                bestMH = {
+                                    name = itemData.name or "Mainhand",
+                                    link = link,
+                                    score = score,
+                                    source = L["SOURCE_BAGS"] or "Bags"
+                                }
+                            end
+                        end
+
+                        -- Set pieces
+                        if itemData.setName and itemData.slot then
+                            local sName = itemData.setName
+                            local normSlot = (itemData.slot == "Ring") and "Ring"
+                                          or (itemData.slot == "Trinket") and "Trinket"
+                                          or itemData.slot
+                            if not setPieces[sName] then
+                                setPieces[sName] = {}
+                            end
+                            setPieces[sName][normSlot] = itemData
+                        end
                     end
                 end
             end
         end
     end
-    UA.cachedBagOffhand = best
+
+    UA.cachedBagOffhand = bestOH
+    UA.cachedBagMainhand = bestMH
+    UA.cachedBagSetPieces = setPieces
     UA.bagCacheDirty = false
-    return best
+end
+
+-- Scan player's bags (0..4) for the best Off-Hand item with dirty-flag debouncing
+function UA.ScanBagsForBestOffhand()
+    if UA.bagCacheDirty or UA.cachedBagOffhand == nil then
+        UA.ScanAllBags()
+    end
+    return UA.cachedBagOffhand
 end
 
 -- Scan player's bank containers (-1, 5..10) on BANK events and cache per-character
@@ -82,17 +133,25 @@ function UA.ScanBankForBestOffhand()
         for slot = 1, numSlots do
             local link = GetContainerItemLink(bag, slot)
             if link then
-                local itemData = UA.GetItemData(nil, link)
+                local _, _, idStr, _, sufStr = string.find(link, "item:(%d+):([%-%d]+):([%-%d]+)")
+                local baseLink = link
+                if idStr then
+                    baseLink = "item:" .. idStr .. ":0:" .. (sufStr or "0") .. ":0"
+                end
+                local itemData = UA.GetItemData(nil, baseLink)
                 if itemData and (itemData.slot == "Offhand" or itemData.equipLoc == "INVTYPE_HOLDABLE") then
-                    local score = UA.GetItemScore(itemData)
-                    if score > bestScore then
-                        bestScore = score
-                        best = {
-                            name = itemData.name or "Offhand",
-                            link = link,
-                            score = score,
-                            source = L["SOURCE_BANK"] or "Bank"
-                        }
+                    if UA.IsItemEquipableByPriest(itemData, nil, baseLink) then
+                        local effRole = itemData.role or "HEAL"
+                        local score = UA.GetItemScore(itemData)
+                        if effRole == "HEAL" and score > 0 and score > bestScore then
+                            bestScore = score
+                            best = {
+                                name = itemData.name or "Offhand",
+                                link = link,
+                                score = score,
+                                source = L["SOURCE_BANK"] or "Bank"
+                            }
+                        end
                     end
                 end
             end
@@ -116,9 +175,9 @@ function UA.GetBestAvailableOffhand()
 
     -- 1. Check equipped offhand
     local eqData = UA.GetEquippedItemData("Offhand")
-    if eqData then
+    if eqData and UA.IsItemEquipableByPriest(eqData) and (eqData.role or "HEAL") == "HEAL" then
         local eqScore = UA.GetItemScore(eqData)
-        if eqScore > bestScore then
+        if eqScore > 0 and eqScore > bestScore then
             bestScore = eqScore
             best = {
                 name = eqData.name or "Offhand",
@@ -138,11 +197,110 @@ function UA.GetBestAvailableOffhand()
 
     -- 3. Check character-scoped cached bank
     local charData = UA.GetCharacterData()
-    local bankBest = (charData and charData.bestBankOffhand) or (PriestBiSDB and PriestBiSDB.bestBankOffhand)
+    local bankBest = charData and charData.bestBankOffhand
     if bankBest and bankBest.score and bankBest.score > bestScore then
         bestScore = bankBest.score
         best = {
             name = bankBest.name or "Offhand",
+            link = bankBest.link,
+            score = bankBest.score,
+            source = L["SOURCE_BANK"] or "Bank"
+        }
+    end
+
+    return best
+end
+
+-- Scan player's bags (0..4) for the best 1H Main-Hand weapon with dirty-flag debouncing
+function UA.ScanBagsForBestMainhand()
+    if UA.bagCacheDirty or UA.cachedBagMainhand == nil then
+        UA.ScanAllBags()
+    end
+    return UA.cachedBagMainhand
+end
+
+-- Scan player's bank containers (-1, 5..10) on BANK events and cache per-character
+function UA.ScanBankForBestMainhand()
+    if not GetContainerNumSlots or not GetContainerItemLink then return nil end
+    local best = nil
+    local bestScore = -1
+
+    local numBankBags = table.getn(UA.BANK_CONTAINERS)
+    for i = 1, numBankBags do
+        local bag = UA.BANK_CONTAINERS[i]
+        local numSlots = GetContainerNumSlots(bag) or 0
+        for slot = 1, numSlots do
+            local link = GetContainerItemLink(bag, slot)
+            if link then
+                local _, _, idStr, _, sufStr = string.find(link, "item:(%d+):([%-%d]+):([%-%d]+)")
+                local baseLink = link
+                if idStr then
+                    baseLink = "item:" .. idStr .. ":0:" .. (sufStr or "0") .. ":0"
+                end
+                local itemData = UA.GetItemData(nil, baseLink)
+                if itemData and (itemData.slot == "Mainhand" or itemData.equipLoc == "INVTYPE_WEAPON" or itemData.equipLoc == "INVTYPE_WEAPONMAINHAND") then
+                    if UA.IsItemEquipableByPriest(itemData, nil, baseLink) then
+                        local effRole = itemData.role or "HEAL"
+                        local score = UA.GetItemScore(itemData)
+                        if effRole == "HEAL" and score > 0 and score > bestScore then
+                            bestScore = score
+                            best = {
+                                name = itemData.name or "Mainhand",
+                                link = link,
+                                score = score,
+                                source = L["SOURCE_BANK"] or "Bank"
+                            }
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    local charData = UA.GetCharacterData()
+    if charData then
+        charData.bestBankMainhand = best
+    end
+    if PriestBiSDB then
+        PriestBiSDB.bestBankMainhand = best
+    end
+    return best
+end
+
+-- Retrieve best available 1H mainhand among Equipped, Bags, and Bank (character scoped)
+function UA.GetBestAvailableMainhand()
+    local best = nil
+    local bestScore = -1
+
+    -- 1. Check equipped mainhand (only if it is a 1H weapon with HEAL role)
+    local eqData = UA.GetEquippedItemData("Mainhand")
+    if eqData and eqData.slot == "Mainhand" and UA.IsItemEquipableByPriest(eqData) and (eqData.role or "HEAL") == "HEAL" then
+        local eqScore = UA.GetItemScore(eqData)
+        if eqScore > 0 and eqScore > bestScore then
+            bestScore = eqScore
+            best = {
+                name = eqData.name or "Mainhand",
+                link = eqData.link,
+                score = eqScore,
+                source = L["SOURCE_EQUIPPED"] or "Equipped"
+            }
+        end
+    end
+
+    -- 2. Check bags
+    local bagBest = UA.ScanBagsForBestMainhand()
+    if bagBest and bagBest.score > bestScore then
+        bestScore = bagBest.score
+        best = bagBest
+    end
+
+    -- 3. Check character-scoped cached bank
+    local charData = UA.GetCharacterData()
+    local bankBest = charData and charData.bestBankMainhand
+    if bankBest and bankBest.score and bankBest.score > bestScore then
+        bestScore = bankBest.score
+        best = {
+            name = bankBest.name or "Mainhand",
             link = bankBest.link,
             score = bankBest.score,
             source = L["SOURCE_BANK"] or "Bank"
@@ -160,37 +318,10 @@ UA.cachedBagSetPieces = nil
 
 -- Scan player's bags (0..4) for set items with dirty-flag debouncing
 function UA.ScanBagsForSetPieces()
-    if not UA.bagCacheDirty and UA.cachedBagSetPieces ~= nil then
-        return UA.cachedBagSetPieces
+    if UA.bagCacheDirty or UA.cachedBagSetPieces == nil then
+        UA.ScanAllBags()
     end
-    if not GetContainerNumSlots or not GetContainerItemLink then
-        return UA.cachedBagSetPieces or {}
-    end
-
-    local setPieces = {} -- [setName] = { [normSlot] = itemData }
-    local numBags = table.getn(UA.BAG_CONTAINERS)
-    for b = 1, numBags do
-        local bag = UA.BAG_CONTAINERS[b]
-        local numSlots = GetContainerNumSlots(bag) or 0
-        for slot = 1, numSlots do
-            local link = GetContainerItemLink(bag, slot)
-            if link then
-                local itemData = UA.GetItemData(nil, link)
-                if itemData and itemData.setName and itemData.slot then
-                    local sName = itemData.setName
-                    local normSlot = (itemData.slot == "Ring") and "Ring"
-                                  or (itemData.slot == "Trinket") and "Trinket"
-                                  or itemData.slot
-                    if not setPieces[sName] then
-                        setPieces[sName] = {}
-                    end
-                    setPieces[sName][normSlot] = itemData
-                end
-            end
-        end
-    end
-    UA.cachedBagSetPieces = setPieces
-    return setPieces
+    return UA.cachedBagSetPieces or {}
 end
 
 -- Count unique slots equipped and available in bags for a given set
@@ -389,7 +520,9 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     if not isEquipable then
         result.isUpgrade = false
         result.roleMismatch = true
-        if itemData.restrictedClasses and not itemData.restrictedClasses["PRIEST"] then
+        if itemData.isShield or itemData.slot == "Shield" or itemData.subType == "Shield" or itemData.subType == "Shields" then
+            result.reason = L["CANNOT_EQUIP_SHIELD"]
+        elseif itemData.restrictedClasses and not itemData.restrictedClasses["PRIEST"] then
             result.reason = L["CLASS_RESTRICTION"]
         elseif itemData.subType and itemData.subType ~= "" then
             result.reason = format(L["CANNOT_EQUIP_SUBTYPE"], itemData.subType)
@@ -455,17 +588,36 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         local score2 = UA.GetItemScore(t2)
 
         local minScore = math.min(score1, score2)
-        local replaceSlot = (score1 <= score2) and "Trinket1" or "Trinket2"
-        local targetItem = (score1 <= score2) and t1 or t2
+        local replaceSlot
+        local targetItem
+        if score1 <= score2 then
+            replaceSlot = "Trinket1"
+            targetItem = t1
+        else
+            replaceSlot = "Trinket2"
+            targetItem = t2
+        end
 
         local itemDelta = newScore - minScore
+        local isSlotEmpty = (targetItem == nil)
         result.replaceSlot = replaceSlot
+        result.isSlotEmpty = isSlotEmpty
         result.currentScore = minScore
-        result.currentItemName = targetItem and targetItem.name or replaceSlot
+        result.currentItemName = isSlotEmpty and L["EMPTY_SLOT"] or (targetItem and targetItem.name or replaceSlot)
         result.itemDelta = itemDelta
         result.delta = itemDelta
         if minScore > 0 then
             result.pct = ((newScore - minScore) / minScore) * 100
+        end
+
+        if isSlotEmpty then
+            result.isUpgrade = (itemDelta > 0)
+            if itemDelta > 0 then
+                result.reason = format(L["EMPTY_SLOT_UPGRADE"], replaceSlot, itemDelta)
+            else
+                result.reason = format(L["EMPTY_SLOT_NO_VALUE"], replaceSlot)
+            end
+            return result
         end
 
         if itemDelta > 0 then
@@ -558,10 +710,12 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         end
 
         local effectiveCurrentScore = targetScore + bestSetLoss
+        local isSlotEmpty = (targetItem == nil)
         result.replaceSlot = pickSlot
+        result.isSlotEmpty = isSlotEmpty
         result.currentScore = targetScore
         result.effectiveScore = effectiveCurrentScore
-        result.currentItemName = targetItem and targetItem.name or pickSlot
+        result.currentItemName = isSlotEmpty and L["EMPTY_SLOT"] or (targetItem and targetItem.name or pickSlot)
         result.itemDelta = bestItemDelta
         result.setBonusEP = bestSetGain
         result.setBonusDesc = bestSetDesc
@@ -572,6 +726,16 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         result.delta = bestNetDelta
         if effectiveCurrentScore > 0 then
             result.pct = (bestNetDelta / effectiveCurrentScore) * 100
+        end
+
+        if isSlotEmpty then
+            result.isUpgrade = (bestNetDelta > 0)
+            if bestNetDelta > 0 then
+                result.reason = format(L["EMPTY_SLOT_UPGRADE"], pickSlot, bestNetDelta)
+            else
+                result.reason = format(L["EMPTY_SLOT_NO_VALUE"], pickSlot)
+            end
+            return result
         end
 
         if bestNetDelta > 0 then
@@ -585,14 +749,15 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     end
 
     -- --------------------------------------------
-    -- WEAPONS: Two-Hand (Staff) vs Mainhand + Offhand
+    -- WEAPONS: Two-Hand (Staff) vs Equipped Weapon(s)
     -- --------------------------------------------
     if slot == "Twohand" or slot == "Staff" then
         local mh = UA.GetEquippedItemData("Mainhand")
-        local oh = UA.GetEquippedItemData("Offhand")
+        local isCurrently2H = mh and (mh.slot == "Twohand" or mh.slot == "Staff" or mh.equipLoc == "INVTYPE_2HWEAPON")
+        local oh = isCurrently2H and nil or UA.GetEquippedItemData("Offhand")
         local mhScore = UA.GetItemScore(mh)
-        local ohScore = UA.GetItemScore(oh)
-        local currentSetScore = mhScore + ohScore
+        local ohScore = oh and UA.GetItemScore(oh) or 0
+        local currentSetScore = isCurrently2H and mhScore or (mhScore + ohScore)
 
         -- Set gain for 2H
         local setGain, setDesc, fromBags = 0, nil, false
@@ -625,12 +790,42 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         local netDelta = itemDelta + netSetDelta
         local effectiveCurrentScore = currentSetScore + totalSetLoss
 
-        result.replaceSlot = "2H (MH+OH)"
+        local isSlotEmpty = (not mh and not oh)
+        result.isSlotEmpty = isSlotEmpty
+        if isSlotEmpty then
+            result.replaceSlot = "Twohand"
+            result.currentItemName = L["EMPTY_SLOT"]
+            result.currentScore = 0
+            result.effectiveScore = 0
+            result.itemDelta = newScore
+            result.delta = newScore + setGain
+            result.setBonusEP = setGain
+            result.setBonusDesc = setDesc
+            result.fromBags = fromBags
+            result.lostSetBonusEP = 0
+            result.netSetDelta = setGain
+            result.isUpgrade = (result.delta > 0)
+            if result.delta > 0 then
+                result.reason = format(L["EMPTY_SLOT_UPGRADE"], "Twohand", result.delta)
+            else
+                result.reason = format(L["EMPTY_SLOT_NO_VALUE"], "Twohand")
+            end
+            return result
+        end
+
+        if isCurrently2H then
+            result.replaceSlot = "Twohand"
+            result.currentItemName = mh and mh.name or "Twohand"
+        elseif mh and oh then
+            result.replaceSlot = "2H (MH+OH)"
+            result.currentItemName = mh.name .. " + " .. oh.name
+        else
+            result.replaceSlot = "Twohand"
+            result.currentItemName = mh and mh.name or (oh and oh.name or "Weapon")
+        end
+
         result.currentScore = currentSetScore
         result.effectiveScore = effectiveCurrentScore
-        local mhName = mh and mh.name or "Mainhand"
-        local ohName = oh and oh.name or "Offhand"
-        result.currentItemName = mhName .. " + " .. ohName
         result.itemDelta = itemDelta
         result.setBonusEP = setGain
         result.setBonusDesc = setDesc
@@ -643,12 +838,30 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             result.pct = (netDelta / effectiveCurrentScore) * 100
         end
 
-        if netDelta > 0 then
-            result.isUpgrade = true
-            result.reason = format(L["TWOHAND_UPGRADE"], netDelta, newScore, currentSetScore)
+        if isCurrently2H then
+            if netDelta > 0 then
+                result.isUpgrade = true
+                result.reason = format(L["TWOHAND_2H_UPGRADE"] or "2H Staff Upgrade (+%d EP: %d -> %d)", netDelta, currentSetScore, newScore)
+            else
+                result.isUpgrade = false
+                result.reason = format(L["TWOHAND_2H_DOWNGRADE"] or "2H Staff Downgrade (%d vs %d EP)", newScore, currentSetScore)
+            end
+        elseif mh and oh then
+            if netDelta > 0 then
+                result.isUpgrade = true
+                result.reason = format(L["TWOHAND_UPGRADE"], netDelta, newScore, currentSetScore)
+            else
+                result.isUpgrade = false
+                result.reason = format(L["TWOHAND_DOWNGRADE"], newScore, currentSetScore)
+            end
         else
-            result.isUpgrade = false
-            result.reason = format(L["TWOHAND_DOWNGRADE"], newScore, currentSetScore)
+            if netDelta > 0 then
+                result.isUpgrade = true
+                result.reason = format(L["TWOHAND_1H_UPGRADE"], netDelta, newScore, currentSetScore)
+            else
+                result.isUpgrade = false
+                result.reason = format(L["TWOHAND_1H_DOWNGRADE"], newScore, currentSetScore)
+            end
         end
         return result
     end
@@ -671,7 +884,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         end
         local netSetDelta = setGain - setLoss
 
-        if currentMH and (currentMH.slot == "Twohand" or currentMH.slot == "Staff") then
+        if currentMH and (currentMH.slot == "Twohand" or currentMH.slot == "Staff" or currentMH.equipLoc == "INVTYPE_2HWEAPON") then
             -- Currently wielding a 2H staff; compare New MH + Best Available OH vs Current 2H
             local current2HScore = UA.GetItemScore(currentMH)
             local bestOH = UA.GetBestAvailableOffhand()
@@ -698,24 +911,117 @@ function UA.GetUpgradeComparison(itemID, itemLink)
                 result.pct = (netDelta / effectiveCurrentScore) * 100
             end
 
-            if netDelta > 0 then
-                result.isUpgrade = true
-                result.reason = format(L["MAINHAND_2H_UPGRADE"], netDelta, projectedScore, current2HScore)
+            if bestOH then
+                if netDelta > 0 then
+                    result.isUpgrade = true
+                    result.reason = format(L["MAINHAND_2H_UPGRADE"], netDelta, projectedScore, current2HScore)
+                else
+                    result.isUpgrade = false
+                    result.reason = format(L["MAINHAND_2H_DOWNGRADE"], projectedScore, current2HScore)
+                end
             else
-                result.isUpgrade = false
-                result.reason = format(L["MAINHAND_2H_DOWNGRADE"], projectedScore, current2HScore)
+                if netDelta > 0 then
+                    result.isUpgrade = true
+                    result.reason = format(L["MAINHAND_2H_NO_OH_UPGRADE"], netDelta, projectedScore, current2HScore)
+                else
+                    result.isUpgrade = false
+                    result.reason = format(L["MAINHAND_2H_NO_OH_DOWNGRADE"], projectedScore, current2HScore)
+                end
             end
             return result
         else
-            local currentScore = UA.GetItemScore(currentMH)
+            local isSlotEmpty = (currentMH == nil)
+            local currentScore = currentMH and UA.GetItemScore(currentMH) or 0
             local itemDelta = newScore - currentScore
             local netDelta = itemDelta + netSetDelta
             local effectiveCurrentScore = currentScore + setLoss
 
             result.replaceSlot = "Mainhand"
+            result.isSlotEmpty = isSlotEmpty
             result.currentScore = currentScore
             result.effectiveScore = effectiveCurrentScore
-            result.currentItemName = currentMH and currentMH.name or "Mainhand"
+            result.currentItemName = isSlotEmpty and L["EMPTY_SLOT"] or (currentMH.name or "Mainhand")
+            result.itemDelta = itemDelta
+            result.setBonusEP = setGain
+            result.setBonusDesc = setDesc
+            result.fromBags = fromBags
+            result.lostSetBonusEP = setLoss
+            result.lostSetBonusDesc = setLossDesc
+            result.netSetDelta = netSetDelta
+            result.delta = netDelta
+            if effectiveCurrentScore > 0 then
+                result.pct = (netDelta / effectiveCurrentScore) * 100
+            end
+
+            if isSlotEmpty then
+                result.isUpgrade = (netDelta > 0)
+                if netDelta > 0 then
+                    result.reason = format(L["EMPTY_SLOT_UPGRADE"], "Mainhand", netDelta)
+                else
+                    result.reason = format(L["EMPTY_SLOT_NO_VALUE"], "Mainhand")
+                end
+                return result
+            elseif netDelta > 0 then
+                result.isUpgrade = true
+                result.reason = format(L["MAINHAND_UPGRADE"], netDelta, currentScore, newScore)
+            else
+                result.isUpgrade = false
+                result.reason = format(L["MAINHAND_DOWNGRADE"], newScore, currentScore)
+            end
+            return result
+        end
+    end
+
+    if slot == "Offhand" then
+        local currentMH = UA.GetEquippedItemData("Mainhand")
+        local isCurrently2H = currentMH and (currentMH.slot == "Twohand" or currentMH.slot == "Staff" or currentMH.equipLoc == "INVTYPE_2HWEAPON")
+
+        local setGain, setDesc, fromBags = 0, nil, false
+        if itemData.setName then
+            local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Offhand")
+            local curCount = totalCount
+            local projectedCount = curCount + 1
+            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
+            if setGain > 0 and bagCount > 0 and eqCount < curCount then fromBags = true end
+        end
+
+        if isCurrently2H then
+            -- Currently wielding a 2H staff; to equip an offhand, player must also wield a 1H mainhand.
+            -- Compare (Candidate OH + Best Available MH) vs (Current 2H staff)
+            local current2HScore = UA.GetItemScore(currentMH)
+
+            local setLoss, setLossDesc = 0, nil
+            if currentMH.setName and (not itemData.setName or itemData.setName ~= currentMH.setName) then
+                local curCount = UA.GetEquippedSetCount(currentMH.setName)
+                setLoss, setLossDesc = UA.CalculateSetLoss(currentMH.setName, curCount, curCount - 1)
+            end
+            local netSetDelta = setGain - setLoss
+
+            local bestMH = UA.GetBestAvailableMainhand()
+            if not bestMH then
+                -- Player has NO 1H weapon to pair with this offhand; cannot unequip 2H staff without a weapon!
+                result.replaceSlot = "Offhand"
+                result.currentScore = current2HScore
+                result.effectiveScore = current2HScore + setLoss
+                result.currentItemName = currentMH.name or "2H Staff"
+                result.itemDelta = newScore - current2HScore
+                result.delta = (newScore - current2HScore) + netSetDelta
+                result.isUpgrade = false
+                result.reason = format(L["OFFHAND_NEEDS_MAINHAND"], currentMH.name or "2H Staff")
+                return result
+            end
+
+            local mhScore = bestMH.score or 0
+            local projectedScore = newScore + mhScore
+            local itemDelta = projectedScore - current2HScore
+            local netDelta = itemDelta + netSetDelta
+            local effectiveCurrentScore = current2HScore + setLoss
+
+            result.replaceSlot = "Offhand"
+            result.currentScore = current2HScore
+            result.effectiveScore = effectiveCurrentScore
+            result.currentItemName = currentMH.name or "2H Staff"
+            result.projectedMH = bestMH
             result.itemDelta = itemDelta
             result.setBonusEP = setGain
             result.setBonusDesc = setDesc
@@ -730,63 +1036,65 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
             if netDelta > 0 then
                 result.isUpgrade = true
-                result.reason = format(L["MAINHAND_UPGRADE"], netDelta, currentScore, newScore)
+                result.reason = format(L["OFFHAND_2H_UPGRADE"], netDelta, projectedScore, current2HScore)
             else
                 result.isUpgrade = false
-                result.reason = format(L["MAINHAND_DOWNGRADE"], newScore, currentScore)
+                result.reason = format(L["OFFHAND_2H_DOWNGRADE"], projectedScore, current2HScore)
+            end
+            return result
+        else
+            -- Currently wielding a 1H weapon (or empty mainhand); compare candidate OH vs equipped OH
+            local currentOH = UA.GetEquippedItemData("Offhand")
+            local currentScore = currentOH and UA.GetItemScore(currentOH) or 0
+            local isSlotEmpty = (currentOH == nil)
+
+            local setLoss, setLossDesc = 0, nil
+            if currentOH and currentOH.setName and (not itemData.setName or itemData.setName ~= currentOH.setName) then
+                local curCount = UA.GetEquippedSetCount(currentOH.setName)
+                setLoss, setLossDesc = UA.CalculateSetLoss(currentOH.setName, curCount, curCount - 1)
+            end
+
+            local itemDelta = newScore - currentScore
+            local netSetDelta = setGain - setLoss
+            local netDelta = itemDelta + netSetDelta
+            local effectiveCurrentScore = currentScore + setLoss
+
+            result.replaceSlot = "Offhand"
+            result.isSlotEmpty = isSlotEmpty
+            result.currentScore = currentScore
+            result.effectiveScore = effectiveCurrentScore
+            result.currentItemName = isSlotEmpty and L["EMPTY_SLOT"] or (currentOH.name or "Offhand")
+            result.itemDelta = itemDelta
+            result.setBonusEP = setGain
+            result.setBonusDesc = setDesc
+            result.fromBags = fromBags
+            result.lostSetBonusEP = setLoss
+            result.lostSetBonusDesc = setLossDesc
+            result.netSetDelta = netSetDelta
+            result.delta = netDelta
+            if effectiveCurrentScore > 0 then
+                result.pct = (netDelta / effectiveCurrentScore) * 100
+            end
+
+            if isSlotEmpty then
+                result.isUpgrade = (netDelta > 0)
+                if netDelta > 0 then
+                    result.reason = format(L["EMPTY_SLOT_UPGRADE"], "Offhand", netDelta)
+                else
+                    result.reason = format(L["EMPTY_SLOT_NO_VALUE"], "Offhand")
+                end
+                return result
+            end
+
+            if netDelta > 0 then
+                result.isUpgrade = true
+                result.reason = format(L["OFFHAND_UPGRADE"], netDelta, currentScore, newScore)
+            else
+                result.isUpgrade = false
+                result.reason = format(L["OFFHAND_DOWNGRADE"], newScore, currentScore)
             end
             return result
         end
-    end
-
-    if slot == "Offhand" then
-        local currentOH = UA.GetEquippedItemData("Offhand")
-        local currentScore = UA.GetItemScore(currentOH)
-
-        local setGain, setDesc, fromBags = 0, nil, false
-        if itemData.setName then
-            local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Offhand")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain > 0 and bagCount > 0 and eqCount < curCount then fromBags = true end
-        end
-
-        local setLoss, setLossDesc = 0, nil
-        if currentOH and currentOH.setName and (not itemData.setName or itemData.setName ~= currentOH.setName) then
-            local curCount = UA.GetEquippedSetCount(currentOH.setName)
-            setLoss, setLossDesc = UA.CalculateSetLoss(currentOH.setName, curCount, curCount - 1)
-        end
-
-        local itemDelta = newScore - currentScore
-        local netSetDelta = setGain - setLoss
-        local netDelta = itemDelta + netSetDelta
-        local effectiveCurrentScore = currentScore + setLoss
-
-        result.replaceSlot = "Offhand"
-        result.currentScore = currentScore
-        result.effectiveScore = effectiveCurrentScore
-        result.currentItemName = currentOH and currentOH.name or "Offhand"
-        result.itemDelta = itemDelta
-        result.setBonusEP = setGain
-        result.setBonusDesc = setDesc
-        result.fromBags = fromBags
-        result.lostSetBonusEP = setLoss
-        result.lostSetBonusDesc = setLossDesc
-        result.netSetDelta = netSetDelta
-        result.delta = netDelta
-        if effectiveCurrentScore > 0 then
-            result.pct = (netDelta / effectiveCurrentScore) * 100
-        end
-
-        if netDelta > 0 then
-            result.isUpgrade = true
-            result.reason = format(L["OFFHAND_UPGRADE"], netDelta, currentScore, newScore)
-        else
-            result.isUpgrade = false
-            result.reason = format(L["OFFHAND_DOWNGRADE"], newScore, currentScore)
-        end
-        return result
     end
 
     -- --------------------------------------------
@@ -824,6 +1132,7 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     local effectiveCurrentScore = currentScore + lostSetBonusEP
 
     result.replaceSlot = slot
+    result.isSlotEmpty = isSlotEmpty
     result.currentScore = currentScore
     result.effectiveScore = effectiveCurrentScore
     result.currentItemName = isSlotEmpty and L["EMPTY_SLOT"] or (currentItem.name or slot)
@@ -841,7 +1150,11 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
     if isSlotEmpty then
         result.isUpgrade = (netDelta > 0)
-        result.reason = format(L["EMPTY_SLOT_UPGRADE"], slot, netDelta)
+        if netDelta > 0 then
+            result.reason = format(L["EMPTY_SLOT_UPGRADE"], slot, netDelta)
+        else
+            result.reason = format(L["EMPTY_SLOT_NO_VALUE"], slot)
+        end
         return result
     end
 

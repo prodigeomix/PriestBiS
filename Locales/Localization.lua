@@ -28,6 +28,14 @@ setmetatable(L, {
         if fallback and fallback[key] ~= nil then
             return fallback[key]
         end
+        local patLoc = PriestBiS.Patterns and PriestBiS.Patterns[PriestBiS.clientLocale]
+        if patLoc and patLoc[key] ~= nil then
+            return patLoc[key]
+        end
+        local patFallback = PriestBiS.Patterns and PriestBiS.Patterns["enUS"]
+        if patFallback and patFallback[key] ~= nil then
+            return patFallback[key]
+        end
         return key
     end
 })

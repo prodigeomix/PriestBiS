@@ -10,8 +10,8 @@ PriestBiS.UA = UA
 _G.PriestBiS = PriestBiS
 _G.UA = UA
 
-PriestBiS.VERSION = "1.3.1"
-UA.VERSION = "1.3.1"
+PriestBiS.VERSION = "1.3.4"
+UA.VERSION = "1.3.4"
 
 local format = string.format
 local tostring = tostring
@@ -65,6 +65,8 @@ UA.STAT_WEIGHTS = {
     spell_damage = 0.0,    -- Pure shadow/spell damage provides 0 throughput for Holy/Disc healing spells
     stamina = 0.05,        -- Small survivability buffer
     armor = 0.0,
+    casting_regen = 5.0,   -- 1% Mana regen while casting (~2.2 MP5 at 300 Spi = ~5.0 EP)
+    haste = 10.0,          -- 1% Casting speed / Haste (~10.0 EP for faster Greater Heal / Flash Heal casts)
 }
 
 UA.SLOT_IDS = {
@@ -99,11 +101,12 @@ local EQUIP_SLOT_MAP = {
     ["INVTYPE_WEAPON"] = "Mainhand",
     ["INVTYPE_2HWEAPON"] = "Twohand",
     ["INVTYPE_WEAPONMAINHAND"] = "Mainhand",
-    ["INVTYPE_WEAPONOFFHAND"] = "Offhand",
-    ["INVTYPE_SHIELD"] = "Offhand",
+    ["INVTYPE_WEAPONOFFHAND"] = "OffhandWeapon",
+    ["INVTYPE_SHIELD"] = "Shield",
     ["INVTYPE_HOLDABLE"] = "Offhand",
-    ["INVTYPE_RANGED"] = "Wand",
+    ["INVTYPE_RANGED"] = "Ranged",
     ["INVTYPE_RANGEDRIGHT"] = "Wand",
+    ["INVTYPE_THROWN"] = "Thrown",
 }
 
 -- Dedicated off-screen scanning tooltip frame
@@ -134,7 +137,7 @@ local function DetectSubtype(str)
     elseif string.find(str, "Mail") or string.find(str, "锁甲") or string.find(str, "Кольчуга") or string.find(str, "Schwere Rüstung") or string.find(str, "Maille") then return "Mail"
     elseif string.find(str, "Plate") or string.find(str, "板甲") or string.find(str, "Латы") or string.find(str, "Platte") or string.find(str, "Plaques") then return "Plate"
     elseif string.find(str, "Cloth") or string.find(str, "布甲") or string.find(str, "Ткань") or string.find(str, "Stoff") or string.find(str, "Tissu") then return "Cloth"
-    elseif string.find(str, "Shield") or string.find(str, "盾牌") or string.find(str, "Щит") or string.find(str, "Schild") or string.find(str, "Bouclier") then return "Shield"
+    elseif string.find(str, "Shield") or string.find(str, "盾牌") or string.find(str, "Щит") or string.find(str, "Schild") or string.find(str, "Bouclier") or string.find(str, "Buckler") then return "Shield"
     elseif string.find(str, "Sword") or string.find(str, "剑") or string.find(str, "Меч") or string.find(str, "Schwert") or string.find(str, "Epée") then return "Sword"
     elseif string.find(str, "Axe") or string.find(str, "斧") or string.find(str, "Топор") or string.find(str, "Axt") or string.find(str, "Hache") then return "Axe"
     elseif string.find(str, "Polearm") or string.find(str, "长柄武器") or string.find(str, "Древковое") or string.find(str, "Stangenwaffe") or string.find(str, "Arme d'hast") then return "Polearm"
@@ -146,6 +149,8 @@ local function DetectSubtype(str)
     elseif string.find(str, "Bow") or string.find(str, "弓") or string.find(str, "Лук") or string.find(str, "Bogen") or string.find(str, "Arc") then return "Bow"
     elseif string.find(str, "Gun") or string.find(str, "枪械") or string.find(str, "Огнестрельное") or string.find(str, "Schusswaffe") or string.find(str, "Arme à feu") then return "Gun"
     elseif string.find(str, "Crossbow") or string.find(str, "弩") or string.find(str, "Арбалет") or string.find(str, "Armbrust") or string.find(str, "Arbalète") then return "Crossbow"
+    elseif string.find(str, "Fist") or string.find(str, "拳套") or string.find(str, "Кистевое") or string.find(str, "Faustwaffe") then return "Fist Weapon"
+    elseif string.find(str, "Thrown") or string.find(str, "投掷") or string.find(str, "Метательное") or string.find(str, "Wurfwaffe") then return "Thrown"
     end
     return nil
 end
@@ -201,10 +206,6 @@ end
 -- Parse item stats dynamically from tooltip
 function UA.ScanItemStats(itemID, itemLink, slotID)
     if not itemID and not itemLink and not slotID then return nil end
-    local cacheKey = itemID or itemLink or slotID
-    if ITEM_STAT_CACHE[cacheKey] then
-        return ITEM_STAT_CACHE[cacheKey]
-    end
 
     -- Extract raw "item:..." link string if a full escaped link was passed
     local rawLink = nil
@@ -230,8 +231,28 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         itemID = UA.GetItemIDFromLink(rawLink)
     end
 
-    -- Secondary cache hit: if itemID is already cached from previous lookups, reuse immediately
-    if itemID and ITEM_STAT_CACHE[itemID] then
+    -- Identify if this link is a variant (has non-zero random enchant suffix or permanent enchant)
+    local isVariant = false
+    if rawLink then
+        local _, _, _, encID, sufID = string.find(rawLink, "item:(%d+):(%d+):(%d+)")
+        if (encID and encID ~= "0") or (sufID and sufID ~= "0") then
+            isVariant = true
+        end
+    end
+
+    local cacheKey
+    if isVariant then
+        cacheKey = rawLink or itemLink or (itemID and tostring(itemID)) or slotID
+    else
+        cacheKey = itemID or rawLink or slotID
+    end
+
+    if ITEM_STAT_CACHE[cacheKey] then
+        return ITEM_STAT_CACHE[cacheKey]
+    end
+
+    -- Secondary cache hit: if standard itemID is already cached from previous lookups, reuse immediately
+    if not isVariant and itemID and ITEM_STAT_CACHE[itemID] then
         ITEM_STAT_CACHE[cacheKey] = ITEM_STAT_CACHE[itemID]
         return ITEM_STAT_CACHE[itemID]
     end
@@ -245,10 +266,10 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         local r = getglobal("UAScanningTooltipTextRight" .. j)
         if r then r:SetText("") end
     end
-    if slotID and GetInventoryItemLink and GetInventoryItemLink("player", slotID) then
-        pcall(function() scanTooltip:SetInventoryItem("player", slotID) end)
-    elseif rawLink then
+    if rawLink then
         pcall(function() scanTooltip:SetHyperlink(rawLink) end)
+    elseif slotID and GetInventoryItemLink and GetInventoryItemLink("player", slotID) then
+        pcall(function() scanTooltip:SetInventoryItem("player", slotID) end)
     end
 
     local stats = {
@@ -265,6 +286,9 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         stam = 0,
         mp5 = 0,
         crit = 0,
+        casting_regen = 0,
+        haste = 0,
+        has_physical = false,
         role = nil,
     }
 
@@ -321,6 +345,24 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     if not classStr then _, _, classStr = string.find(text, "职业[：:]%s*(.+)") end
                     if not classStr then _, _, classStr = string.find(text, "Классы:%s*(.+)") end
                     if not classStr then _, _, classStr = string.find(text, "Класс:%s*(.+)") end
+                    if not classStr then
+                        local _, _, reqStr = string.find(text, "Requires%s+([%a%s]+)")
+                        if not reqStr then _, _, reqStr = string.find(text, "Requires:%s*(.+)") end
+                        if not reqStr then _, _, reqStr = string.find(text, "Benötigt:%s*(.+)") end
+                        if not reqStr then _, _, reqStr = string.find(text, "Requiert%s*:%s*(.+)") end
+                        if not reqStr then _, _, reqStr = string.find(text, "Требуется:%s*(.+)") end
+                        if not reqStr then _, _, reqStr = string.find(text, "需要[：:]%s*(.+)") end
+                        if reqStr then
+                            if string.find(reqStr, "Warrior") or string.find(reqStr, "Paladin") or string.find(reqStr, "Hunter") or string.find(reqStr, "Rogue")
+                               or string.find(reqStr, "Shaman") or string.find(reqStr, "Mage") or string.find(reqStr, "Warlock") or string.find(reqStr, "Druid") or string.find(reqStr, "Priest")
+                               or string.find(reqStr, "Krieger") or string.find(reqStr, "Jäger") or string.find(reqStr, "Schurke") or string.find(reqStr, "Schamane") or string.find(reqStr, "Magier") or string.find(reqStr, "Hexenmeister") or string.find(reqStr, "Priester")
+                               or string.find(reqStr, "Guerrier") or string.find(reqStr, "Chasseur") or string.find(reqStr, "Voleur") or string.find(reqStr, "Chaman") or string.find(reqStr, "Sorcier") or string.find(reqStr, "Démoniste") or string.find(reqStr, "Prêtre")
+                               or string.find(reqStr, "Воин") or string.find(reqStr, "Паладин") or string.find(reqStr, "Охотник") or string.find(reqStr, "Разбойник") or string.find(reqStr, "Шаман") or string.find(reqStr, "Маг") or string.find(reqStr, "Чернокнижник") or string.find(reqStr, "Друид") or string.find(reqStr, "Жрец")
+                               or string.find(reqStr, "战士") or string.find(reqStr, "圣骑士") or string.find(reqStr, "猎人") or string.find(reqStr, "潜行者") or string.find(reqStr, "萨满") or string.find(reqStr, "法师") or string.find(reqStr, "术士") or string.find(reqStr, "德鲁伊") or string.find(reqStr, "牧师") then
+                                classStr = reqStr
+                            end
+                        end
+                    end
                     if classStr then
                         stats.restrictedClasses = {}
                         if string.find(classStr, "Priest") or string.find(classStr, "Priester") or string.find(classStr, "Prêtre") or string.find(classStr, "牧师") or string.find(classStr, "Жрец") then
@@ -363,6 +405,46 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     local valCrit = ScanStatAcrossLocales(text, "CRIT")
                     if valCrit then stats.crit = stats.crit + valCrit end
 
+                    -- Match Mana Regen While Casting (Meditation / Staff of the Dreamer)
+                    local valCastRegen = ScanStatAcrossLocales(text, "CASTING_REGEN")
+                    if valCastRegen then stats.casting_regen = stats.casting_regen + valCastRegen end
+
+                    -- Match Spell Haste / Casting Speed
+                    local valHaste = ScanStatAcrossLocales(text, "HASTE")
+                    if valHaste then stats.haste = stats.haste + valHaste end
+
+                    -- Detect physical / tank stats across locales
+                    if not stats.has_physical then
+                        if string.find(text, "Attack Power") or string.find(text, "Angriffskraft") or string.find(text, "Puissance d'attaque") or string.find(text, "攻击强度") or string.find(text, "Сила атаки")
+                           or string.find(text, "%+(%d+) Strength") or string.find(text, "(%d+) Strength") or string.find(text, "Strength %+(%d+)")
+                           or string.find(text, "%+(%d+) Stärke") or string.find(text, "(%d+) Stärke")
+                           or string.find(text, "%+(%d+) Force") or string.find(text, "(%d+) Force")
+                           or string.find(text, "%+(%d+) 力量") or string.find(text, "(%d+) 力量") or string.find(text, "%+(%d+)点力量")
+                           or string.find(text, "%+(%d+) к силе") or string.find(text, "%+(%d+) Сила") or string.find(text, "(%d+) Сила")
+                           or string.find(text, "%+(%d+) Agility") or string.find(text, "(%d+) Agility") or string.find(text, "Agility %+(%d+)")
+                           or string.find(text, "%+(%d+) Beweglichkeit") or string.find(text, "(%d+) Beweglichkeit")
+                           or string.find(text, "%+(%d+) Agilité") or string.find(text, "(%d+) Agilité")
+                           or string.find(text, "%+(%d+) 敏捷") or string.find(text, "(%d+) 敏捷") or string.find(text, "%+(%d+)点敏捷")
+                           or string.find(text, "%+(%d+) к ловкости") or string.find(text, "%+(%d+) Ловкость") or string.find(text, "(%d+) Ловкость")
+                           or string.find(text, "Increased Defense") or string.find(text, "Defense %+(%d+)") or string.find(text, "%+(%d+) Defense")
+                           or string.find(text, "Verteidigung") or string.find(text, "Défense") or string.find(text, "防御") or string.find(text, "Защита")
+                           or string.find(text, "Dodge") or string.find(text, "Ausweichen") or string.find(text, "Esquive") or string.find(text, "躲闪") or string.find(text, "Уклонение")
+                           or string.find(text, "Parry") or string.find(text, "Parieren") or string.find(text, "Parade") or string.find(text, "招架") or string.find(text, "Парирование")
+                           or string.find(text, "Block") or string.find(text, "Blocken") or string.find(text, "Blocage") or string.find(text, "格挡") or string.find(text, "Блок")
+                           or (string.find(text, "chance to hit") and not string.find(text, "spell"))
+                           or (string.find(text, "Trefferchance") and not string.find(text, "Zauber"))
+                           or (string.find(text, "toucher") and not string.find(text, "sort"))
+                           or (string.find(text, "命中几率") and not string.find(text, "法术"))
+                           or (string.find(text, "вероятность попасть") and not string.find(text, "заклинани"))
+                           or (string.find(text, "critical strike") and not string.find(text, "spell") and not string.find(text, "Holy"))
+                           or (string.find(text, "kritischen Treffer") and not string.find(text, "Zauber") and not string.find(text, "Heilig"))
+                           or (string.find(text, "coup critique") and not string.find(text, "sort") and not string.find(text, "Sacr"))
+                           or (string.find(text, "致命一击") and not string.find(text, "法术") and not string.find(text, "神圣"))
+                           or (string.find(text, "критического удара") and not string.find(text, "заклинани") and not string.find(text, "Свет")) then
+                            stats.has_physical = true
+                        end
+                    end
+
                     -- Detect slot from tooltip header lines (lines 1 to 6 only, to avoid matching tier set piece listings)
                     if not stats.slot and i <= 6 then
                         if string.find(text, "Head") or string.find(text, "头部") or string.find(text, "Голова") or string.find(text, "Kopf") or string.find(text, "Tête") then stats.slot = "Head"
@@ -380,7 +462,8 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                         elseif string.find(text, "Two%-Hand") or string.find(text, "双手") or string.find(text, "Двуручное") or string.find(text, "Zweihändig") or string.find(text, "Deux mains") then stats.slot = "Twohand"
                         elseif string.find(text, "Main Hand") or string.find(text, "One%-Hand") or string.find(text, "主手") or string.find(text, "单手") or string.find(text, "Правая рука") or string.find(text, "Одноручное") or string.find(text, "Waffenhand") or string.find(text, "Einhand") or string.find(text, "Main droite") or string.find(text, "Une main") then stats.slot = "Mainhand"
                         elseif string.find(text, "Held In Off%-Hand") or string.find(text, "Off Hand") or string.find(text, "副手") or string.find(text, "左手") or string.find(text, "Левая рука") or string.find(text, "Schildhand") or string.find(text, "En main gauche") then stats.slot = "Offhand"
-                        elseif string.find(text, "Ranged") or string.find(text, "Wand") or string.find(text, "远程") or string.find(text, "魔杖") or string.find(text, "Дальний бой") or string.find(text, "Жезл") or string.find(text, "Distanz") or string.find(text, "Zauberstab") or string.find(text, "À distance") or string.find(text, "Baguette") then stats.slot = "Wand"
+                        elseif string.find(text, "Wand") or string.find(text, "魔杖") or string.find(text, "Жезл") or string.find(text, "Zauberstab") or string.find(text, "Baguette") then stats.slot = "Wand"
+                        elseif string.find(text, "Ranged") or string.find(text, "远程") or string.find(text, "Дальний бой") or string.find(text, "Distanz") or string.find(text, "À distance") then stats.slot = "Ranged"
                         end
                     end
                 end
@@ -412,7 +495,8 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     elseif string.find(rText, "Two%-Hand") or string.find(rText, "双手") or string.find(rText, "Двуручное") or string.find(rText, "Zweihändig") or string.find(rText, "Deux mains") then stats.slot = "Twohand"
                     elseif string.find(rText, "Main Hand") or string.find(rText, "One%-Hand") or string.find(rText, "主手") or string.find(rText, "单手") or string.find(rText, "Правая рука") or string.find(rText, "Одноручное") or string.find(rText, "Waffenhand") or string.find(rText, "Einhand") or string.find(rText, "Main droite") or string.find(rText, "Une main") then stats.slot = "Mainhand"
                     elseif string.find(rText, "Held In Off%-Hand") or string.find(rText, "Off Hand") or string.find(rText, "副手") or string.find(rText, "左手") or string.find(rText, "Левая рука") or string.find(rText, "Schildhand") or string.find(rText, "En main gauche") then stats.slot = "Offhand"
-                    elseif string.find(rText, "Ranged") or string.find(rText, "Wand") or string.find(rText, "远程") or string.find(rText, "魔杖") or string.find(rText, "Дальний бой") or string.find(rText, "Жезл") or string.find(rText, "Distanz") or string.find(rText, "Zauberstab") or string.find(rText, "À distance") or string.find(rText, "Baguette") then stats.slot = "Wand"
+                    elseif string.find(rText, "Wand") or string.find(rText, "魔杖") or string.find(rText, "Жезл") or string.find(rText, "Zauberstab") or string.find(rText, "Baguette") then stats.slot = "Wand"
+                    elseif string.find(rText, "Ranged") or string.find(rText, "远程") or string.find(rText, "Дальний бой") or string.find(rText, "Distanz") or string.find(rText, "À distance") then stats.slot = "Ranged"
                     end
                 end
             end
@@ -427,11 +511,38 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         if equipSlot and not stats.slot and EQUIP_SLOT_MAP[equipSlot] then
             stats.slot = EQUIP_SLOT_MAP[equipSlot]
         end
+        if equipSlot == "INVTYPE_SHIELD" or itemSubType == "Shield" or itemSubType == "Shields"
+           or itemSubType == "盾牌" or itemSubType == "Щит" or itemSubType == "Щиты"
+           or itemSubType == "Schild" or itemSubType == "Schilde" or itemSubType == "Bouclier" or itemSubType == "Boucliers" or itemSubType == "Buckler" then
+            stats.isShield = true
+            stats.slot = "Shield"
+            stats.subType = "Shield"
+        end
+    end
+
+    -- If detected as Wand subtype, ensure slot is Wand
+    if stats.subType == "Wand" then
+        stats.slot = "Wand"
+    elseif stats.subType == "Bow" or stats.subType == "Gun" or stats.subType == "Crossbow" or stats.subType == "Thrown" then
+        stats.slot = "Ranged"
+    end
+
+    -- If detected as Shield, strictly force slot to Shield (Priests cannot equip Shields)
+    if stats.subType == "Shield" or stats.isShield then
+        stats.slot = "Shield"
+        stats.isShield = true
+    end
+
+    -- Stat-based role inference for scanned stats
+    if not stats.role and stats.spell_damage and stats.spell_damage > 0 and (stats.healing or 0) == 0 then
+        stats.role = "DPS"
+    elseif not stats.role and stats.has_physical and (stats.healing or 0) == 0 and (stats.mp5 or 0) == 0 then
+        stats.role = "MELEE"
     end
 
     if stats.name ~= "" and stats.slot ~= nil then
         ITEM_STAT_CACHE[cacheKey] = stats
-        if itemID and cacheKey ~= itemID then
+        if not isVariant and itemID and cacheKey ~= itemID then
             ITEM_STAT_CACHE[itemID] = stats
         end
         return stats
@@ -523,16 +634,27 @@ function UA.GetItemData(itemID, itemLink, slotID)
     if not itemData then
         local meta = itemID and (UA.ITEM_METADATA and UA.ITEM_METADATA[itemID])
         if meta then
+            local fallbackSlot = meta.slot
+            if not fallbackSlot and itemID and GetItemInfo then
+                local _, _, _, _, _, _, _, gEquipSlot = GetItemInfo(itemID)
+                if gEquipSlot and EQUIP_SLOT_MAP[gEquipSlot] then
+                    fallbackSlot = EQUIP_SLOT_MAP[gEquipSlot]
+                end
+            end
+            if not fallbackSlot then
+                return nil
+            end
             itemData = {
                 name = meta.name or ("Item #" .. itemID),
-                slot = meta.slot or "Trinket",
+                slot = fallbackSlot,
                 role = meta.role,
                 tier = meta.tier or "S",
                 ep_override = meta.ep_override,
                 drop = meta.drop,
                 note = meta.note,
                 rewardID = meta.rewardID,
-                healing = 0, spi = 0, int = 0, mp5 = 0, crit = 0, stam = 0, spell_damage = 0
+                healing = 0, spi = 0, int = 0, mp5 = 0, crit = 0, stam = 0, spell_damage = 0,
+                casting_regen = 0, haste = 0
             }
             return itemData
         end
@@ -555,6 +677,11 @@ function UA.GetItemData(itemID, itemLink, slotID)
         itemData.role = "DPS"
     end
 
+    -- If item has physical melee/tank stats and no healing/mp5, it's a MELEE item
+    if not itemData.role and itemData.has_physical and (itemData.healing or 0) == 0 and (itemData.mp5 or 0) == 0 then
+        itemData.role = "MELEE"
+    end
+
     if not itemData.drop and itemID then
         local pfSource = UA.GetItemSourceFromPfDB(itemID)
         if pfSource then
@@ -568,6 +695,12 @@ end
 -- Calculate item score using Holy Priest EP weights
 function UA.GetItemScore(item)
     if not item then return 0 end
+    if item.rewardID then
+        local rewardData = UA.GetItemData(item.rewardID)
+        if rewardData and rewardData ~= item then
+            return UA.GetItemScore(rewardData)
+        end
+    end
     if item.ep_override then
         return item.ep_override
     end
@@ -580,6 +713,8 @@ function UA.GetItemScore(item)
     score = score + (item.int or 0) * UA.STAT_WEIGHTS.int
     score = score + (item.stam or 0) * UA.STAT_WEIGHTS.stamina
     score = score + (item.spell_damage or 0) * UA.STAT_WEIGHTS.spell_damage
+    score = score + (item.casting_regen or 0) * (UA.STAT_WEIGHTS.casting_regen or 5.0)
+    score = score + (item.haste or 0) * (UA.STAT_WEIGHTS.haste or 10.0)
     return math.floor(score + 0.5)
 end
 
@@ -650,6 +785,14 @@ function UA.FormatStatBreakdown(itemData)
         local epStam = itemData.stam * UA.STAT_WEIGHTS.stamina
         table.insert(parts, format(L["STAT_STAM"], itemData.stam, epStam))
     end
+    if itemData.casting_regen and itemData.casting_regen > 0 then
+        local epRegen = itemData.casting_regen * (UA.STAT_WEIGHTS.casting_regen or 5.0)
+        table.insert(parts, format(L["STAT_CASTING_REGEN"] or "+%d%% Casting Regen (%.1f)", itemData.casting_regen, epRegen))
+    end
+    if itemData.haste and itemData.haste > 0 then
+        local epHaste = itemData.haste * (UA.STAT_WEIGHTS.haste or 10.0)
+        table.insert(parts, format(L["STAT_HASTE"] or "+%d%% Haste (%.1f)", itemData.haste, epHaste))
+    end
 
     local numParts = table.getn(parts)
     if numParts == 0 then
@@ -673,7 +816,16 @@ function UA.GetEquippedItemData(slotName)
     if link then
         local itemID = UA.GetItemIDFromLink(link)
         if itemID then
-            local data = UA.GetItemData(itemID, link, slotID)
+            -- Normalize equipped item to its base item link to ensure apples-to-apples comparison
+            -- (strips player-applied permanent enchants like +55 Healing so raw drops are not penalized)
+            local _, _, idStr, _, sufStr = string.find(link, "item:(%d+):([%-%d]+):([%-%d]+)")
+            local baseLink
+            if idStr then
+                baseLink = "item:" .. idStr .. ":0:" .. (sufStr or "0") .. ":0"
+            else
+                baseLink = "item:" .. itemID .. ":0:0:0"
+            end
+            local data = UA.GetItemData(itemID, baseLink)
             if data then return data end
         end
     end
@@ -706,20 +858,21 @@ local PRIEST_ARMOR_SLOTS = {
 }
 
 local PRIEST_WEAPON_SLOTS = {
-    Mainhand = true, Twohand = true, Offhand = true, Wand = true
+    Mainhand = true, Twohand = true, Offhand = true, Wand = true, Ranged = true
 }
 
 local PRIEST_PROHIBITED_ARMOR = {
     ["Leather"] = true, ["皮甲"] = true, ["Кожа"] = true, ["Leder"] = true, ["Cuir"] = true,
     ["Mail"] = true, ["锁甲"] = true, ["Кольчуга"] = true, ["Schwere Rüstung"] = true, ["Maille"] = true,
     ["Plate"] = true, ["板甲"] = true, ["Латы"] = true, ["Platte"] = true, ["Plaques"] = true,
-    ["Shield"] = true, ["Shields"] = true, ["盾牌"] = true, ["Щит"] = true, ["Щиты"] = true, ["Schild"] = true, ["Bouclier"] = true,
+    ["Shield"] = true, ["Shields"] = true, ["盾牌"] = true, ["Щит"] = true, ["Щиты"] = true, ["Schild"] = true, ["Schilde"] = true, ["Bouclier"] = true, ["Boucliers"] = true, ["Buckler"] = true,
 }
 
 local PRIEST_PROHIBITED_WEAPONS = {
-    ["Sword"] = true, ["One-Handed Swords"] = true, ["Two-Handed Swords"] = true, ["剑"] = true, ["单手剑"] = true, ["双手剑"] = true, ["Меч"] = true, ["Одноручные мечи"] = true, ["Двуручные мечи"] = true, ["Schwert"] = true, ["Epée"] = true,
-    ["Axe"] = true, ["One-Handed Axes"] = true, ["Two-Handed Axes"] = true, ["斧"] = true, ["单手斧"] = true, ["双手斧"] = true, ["Топор"] = true, ["Одноручные топоры"] = true, ["Двуручные топоры"] = true, ["Axt"] = true, ["Hache"] = true,
-    ["Two-Handed Maces"] = true, ["双手锤"] = true, ["Двуручное дробящее"] = true, ["Zweihandstreitkolben"] = true, ["Masse à deux mains"] = true,
+    ["Shield"] = true, ["Shields"] = true, ["盾牌"] = true, ["Щит"] = true, ["Щиты"] = true, ["Schild"] = true, ["Schilde"] = true, ["Bouclier"] = true, ["Boucliers"] = true, ["Buckler"] = true,
+    ["Sword"] = true, ["Swords"] = true, ["One-Handed Sword"] = true, ["One-Handed Swords"] = true, ["Two-Handed Sword"] = true, ["Two-Handed Swords"] = true, ["剑"] = true, ["单手剑"] = true, ["双手剑"] = true, ["Меч"] = true, ["Одноручные мечи"] = true, ["Двуручные мечи"] = true, ["Schwert"] = true, ["Epée"] = true,
+    ["Axe"] = true, ["Axes"] = true, ["One-Handed Axe"] = true, ["One-Handed Axes"] = true, ["Two-Handed Axe"] = true, ["Two-Handed Axes"] = true, ["斧"] = true, ["单手斧"] = true, ["双手斧"] = true, ["Топор"] = true, ["Одноручные топоры"] = true, ["Двуручные топоры"] = true, ["Axt"] = true, ["Hache"] = true,
+    ["Two-Handed Mace"] = true, ["Two-Handed Maces"] = true, ["双手锤"] = true, ["Двуручное дробящее"] = true, ["Zweihandstreitkolben"] = true, ["Masse à deux mains"] = true,
     ["Polearm"] = true, ["Polearms"] = true, ["长柄武器"] = true, ["Древковое"] = true, ["Stangenwaffe"] = true, ["Arme d'hast"] = true,
     ["Bow"] = true, ["Bows"] = true, ["弓"] = true, ["Лук"] = true, ["Bogen"] = true, ["Arc"] = true,
     ["Gun"] = true, ["Guns"] = true, ["枪械"] = true, ["Огнестрельное"] = true, ["Schusswaffe"] = true, ["Arme à feu"] = true,
@@ -732,9 +885,14 @@ local PRIEST_PROHIBITED_WEAPONS = {
 function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     if not itemData then return false end
 
-    -- Must have a valid equipment slot
+    -- Must have a valid equipment slot (Shields, Dual-wield weapons, Ranged weapons, and Thrown are prohibited)
     local slot = itemData.slot
-    if not slot or slot == "" or slot == "Shirt" or slot == "Tabard" then
+    if not slot or slot == "" or slot == "Shirt" or slot == "Tabard" or slot == "Shield" or slot == "OffhandWeapon" or slot == "Ranged" or slot == "Thrown" then
+        return false
+    end
+
+    -- Explicit shield flag from tooltip scan
+    if itemData.isShield then
         return false
     end
 
@@ -746,14 +904,18 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     -- Tooltip subtype check
     local subType = itemData.subType
     if subType and subType ~= "" then
-        if PRIEST_ARMOR_SLOTS[slot] then
+        if subType == "Shield" or subType == "Shields" or subType == "盾牌" or subType == "Щит" or subType == "Щиты" or subType == "Schild" or subType == "Schilde" or subType == "Bouclier" or subType == "Boucliers" or subType == "Buckler" then
+            return false
+        end
+
+        if PRIEST_ARMOR_SLOTS[slot] or slot == "Offhand" then
             if PRIEST_PROHIBITED_ARMOR[subType] then
                 return false
             end
         end
 
         if PRIEST_WEAPON_SLOTS[slot] then
-            if PRIEST_PROHIBITED_WEAPONS[subType] or subType == "Shield" or subType == "盾牌" or subType == "Щит" or subType == "Schild" or subType == "Bouclier" then
+            if PRIEST_PROHIBITED_WEAPONS[subType] then
                 return false
             end
         end
@@ -763,7 +925,12 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
     local linkOrID = itemLink or itemID
     if linkOrID and GetItemInfo then
         local _, _, _, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(linkOrID)
-        if itemEquipLoc == "INVTYPE_SHIELD" or itemEquipLoc == "INVTYPE_RELIC" or itemEquipLoc == "INVTYPE_THROWN" or itemEquipLoc == "INVTYPE_AMMO" then
+        if itemEquipLoc == "INVTYPE_SHIELD" or itemEquipLoc == "INVTYPE_RELIC" or itemEquipLoc == "INVTYPE_THROWN" or itemEquipLoc == "INVTYPE_AMMO" or itemEquipLoc == "INVTYPE_WEAPONOFFHAND" or itemEquipLoc == "INVTYPE_RANGED" then
+            return false
+        end
+
+        -- Offhand slot must strictly be INVTYPE_HOLDABLE (Priests cannot equip shields or offhand weapons)
+        if slot == "Offhand" and itemEquipLoc and itemEquipLoc ~= "INVTYPE_HOLDABLE" then
             return false
         end
 
@@ -786,7 +953,7 @@ function UA.IsItemEquipableByPriest(itemData, itemID, itemLink)
         end
 
         if itemType == "Armor" or itemType == "护甲" or itemType == "Доспехи" or itemType == "Rüstung" or itemType == "Armure" then
-            if PRIEST_ARMOR_SLOTS[slot] then
+            if PRIEST_ARMOR_SLOTS[slot] or slot == "Offhand" then
                 if itemSubType and PRIEST_PROHIBITED_ARMOR[itemSubType] then
                     return false
                 end
@@ -832,5 +999,5 @@ function UA.UpdateDynamicTalentWeights()
     UA.STAT_WEIGHTS.spi = sgBonus + medBonus
 
     -- Invalidate stat cache so all items are dynamically re-evaluated
-    ITEM_STAT_CACHE = {}
+    UA.ClearCache()
 end

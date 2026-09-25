@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.4] - 2026-09-25
+
+### Fixed
+- **Equipped Item Enchantment Inflation (Apples-to-Apples Gear Comparisons)**:
+  - `UA.GetEquippedItemData(slotName)` now normalizes equipped item hyperlinks to base item links (`item:itemID:0:suffixID:0`) before querying scanning tooltips.
+  - Previously, permanent weapon enchants like `+55 Healing` or oils applied to equipped weapons were parsed from the equipped slot tooltip, inflating equipped gear (e.g. Benediction inflated from 133 EP to 188 EP) and causing raw dungeon/raid drops in AtlasLoot or boss loot to be falsely flagged as downgrades.
+- **Missing Tooltip Parsing for Casting Regen & Haste**:
+  - Added regex pattern tables and localization strings across all 5 supported locales (enUS, zhCN, ruRU, deDE, frFR) for:
+    - `Equip: Allows X% of your Mana regeneration to continue while casting.` (`casting_regen`, weight = 5.0 EP per 1%)
+    - `Equip: Increases your attack and casting speed by X%.` (`haste`, weight = 10.0 EP per 1%)
+  - Staff of the Dreamer (Turtle WoW) now captures its full stat profile (+134 Healing, +25 Int, +32 Spirit, +5 MP5, +5% Casting Regen, +1% Haste), evaluating to 195 EP (base) / 208 EP (with Holy talents), correctly ranking as a massive +70 EP upgrade over Benediction (138 EP).
+- **Prohibited Equipment Filtering (Shields, Offhand Weapons, and Ranged Weapons)**:
+  - Hardened `IsItemEquipableByPriest()` and `ScanItemStats()` to strictly reject `INVTYPE_SHIELD`, shields across all 5 languages, `INVTYPE_WEAPONOFFHAND`, `INVTYPE_RANGED`, and `INVTYPE_THROWN`.
+  - Offhand slot items must strictly have `INVTYPE_HOLDABLE` to prevent shields or offhand weapons from triggering false upgrade alerts.
+- **Tooltip Frame Text Overflow / Clipping Beyond Line 30**:
+  - Hooked `tooltip.Show` and added `UA.AdjustTooltipSize(tooltip)` across `GameTooltip`, `ItemRefTooltip`, and all `AtlasLootTooltip` instances.
+  - Previously, when an item with extensive text (such as 8-piece tier set bonuses) had PriestBiS upgrade badges, source, and note lines appended beyond Vanilla's native 30-line limit, subsequent `Show()` calls from AtlasLoot or the game engine reset the tooltip height to line 30, causing custom lines to bleed outside the bottom of the tooltip box. The frame height is now dynamically anchored to the bottom coordinate of the last rendered custom line.
+- **Tier 2 (Vestments of Transcendence) 3-Piece Bonus Reconciliation**:
+  - Updated the 3-piece set bonus (+15% Mana Regen while casting) from static 25 EP to **75 EP** ($15\% \times 5.0\text{ EP}$) across all 5 supported locales, reconciling it with the casting regen stat weight.
+  - Standalone, Robes of Transcendence (+59 Heal, +16 Spirit, +27 Int) is a pure stat sidegrade (77 EP vs 77 EP) against Stratholme's overtuned Robes of the Exalted (+68 Heal) until the 3-piece T2 bonus (+75 EP) is activated.
+- **Static Quest Token & Ring Override Removal**:
+  - Removed static `ep_override = 74` from `Pure Elementium Band` (19382); it is now evaluated dynamically based on active player talents.
+  - Converted quest turn-in tokens (Head of Nefarian, The Eye of Divinity, Head of Onyxia, Heart of Hakkar) from hardcoded static EP values to dynamic reward inheritance via `rewardID`.
+
+### Added
+- **Multi-Language Parsing Test Coverage**: Added 10 new test assertions in `tools/test_gear_patterns.py` verifying `casting_regen` and `haste` parsing in English, Chinese, Russian, German, and French.
+- **Staff of the Dreamer vs Enchanted Benediction Test**: Added explicit simulation in `tools/test_priest_bis.lua` verifying that an equipped Benediction with +55 Healing enchant does not inflate the comparison or downgrade Staff of the Dreamer.
+
+---
+
+## [1.3.3] - 2026-09-25
+
+### Fixed
+- **Physical Items with Spirit Mistakenly Categorized as Healer Gear**: Items with physical melee/tank stats (Strength, Agility, Attack Power, Defense, Dodge, Parry, Block) that also rolled Spirit (e.g. "of the Gorilla", "of the Wolf", or leveling melee items) previously bypassed the `MELEE` role check because the check required `spirit == 0`. These items are now strictly classified as `role = "MELEE"` and rejected by role mismatch filtering.
+- **Melee Weapons in Bags Picked as Paired Mainhands**: `UA.ScanBagsForBestMainhand()` and `UA.ScanBankForBestMainhand()` did not check `itemData.role`. If a priest carried a rogue dagger or warrior mace with high agility/crit, the addon could pair it with a dropped offhand to recommend replacing a 2H staff (Benediction). Both bag and bank scans now strictly enforce `role == "HEAL"` and `score > 0`.
+- **Bag Scan Dirty-Flag Desynchronization & Redundant Passes**:
+  - Replaced separate loops for offhand, mainhand, and set pieces with a single unified `UA.ScanAllBags()` pass over containers 0..4.
+  - Synchronously updates `cachedBagOffhand`, `cachedBagMainhand`, and `cachedBagSetPieces`, eliminating cache desync and reducing container scanning overhead by 66%.
+- **Random Enchant / Suffix Cache Collision**: In `UA.ScanItemStats`, variant items sharing a base `itemID` with different enchants/suffixes (`enchantID ~= "0"` or `suffixID ~= "0"`, e.g. "of Healing" vs "of the Owl") are now cached strictly by their full hyperlink key rather than base item ID.
+- **Third-Person Chat Loot False Positives**: In `UA.CheckLootChatMessage`, added negative checks for `receives`, `erhält`, and `reçoit` to prevent third-person messages containing player names beginning with "You" (e.g. "Youth receives loot: ...") from being mistakenly flagged as self-loot.
+- **Uncolored ItemLink Support in Raid Roll Monitor**: Added fallback matching for uncolored hyperlinks (`|Hitem:...|h[...]`) and raw `item:ID` patterns in raid chat roll announcements.
+- **Class Restriction Match for 'Requires Priest'**: Added Priest and its localized equivalents ("Priest", "Priester", "Prêtre", "Жрец", "牧师") to the `Requires <Class>` regex pattern match list.
+- **Pure Spell Damage Misclassification**: Moved `"Spell Damage %+(%d+)"` from `DAMAGE_HEALING` to `DAMAGE_ONLY` in `Locales/Localization.enUS.lua` so pure shadow/spell damage items are correctly identified with `role = "DPS"`.
+
+### Added
+- **Tests 18 through 25**: Extended automated simulation test suite in `tools/test_priest_bis.lua` covering third-person loot grammar, uncolored raid rolls, variant item independence, pure spell damage DPS assignment, physical items with spirit rejection, melee bag pair rejection, "Requires Priest" parsing, and unified bag scan cache consistency.
+
+---
+
 ## [1.3.2] - 2026-09-10
 
 ### Fixed

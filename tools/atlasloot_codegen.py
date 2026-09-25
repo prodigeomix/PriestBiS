@@ -20,7 +20,7 @@ TOOLS_DIR = os.path.join(BASE_DIR, "tools")
 
 CLOTH_ARMOR_TAG = "#a1#"
 PRIEST_CLASS_TAG = "#c5#"
-PRIEST_WEAPONS = {"#w12#", "#w9#", "#w6#", "#h2#"}  # wands, staves, maces, offhand
+PRIEST_WEAPONS = {"#w12#", "#w9#", "#w6#", "#h2#", "#h4#", "#s15#"}  # wands, staves, maces, 2H, offhand
 
 # Armor class mapping from TextParsing.lua
 ARMOR_MAP = {"1": "Cloth", "2": "Leather", "3": "Mail", "4": "Plate"}
@@ -134,6 +134,10 @@ def get_weapon_hand(ds_str):
     if re.search(r'#h1#', ds_str):
         return "Mainhand"
     elif re.search(r'#h2#', ds_str):
+        return "Twohand"
+    elif re.search(r'#h3#', ds_str):
+        return "Mainhand"
+    elif re.search(r'#h4#|#s15#', ds_str):
         return "Offhand"
     elif re.search(r'#w6#', ds_str):  # One-handed mace
         return "Mainhand"

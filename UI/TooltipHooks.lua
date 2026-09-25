@@ -22,6 +22,10 @@ local L = PriestBiS.L or setmetatable({}, {
         if loc and loc[key] ~= nil then return loc[key] end
         local fallback = PriestBiS.Locales and PriestBiS.Locales["enUS"]
         if fallback and fallback[key] ~= nil then return fallback[key] end
+        local patLoc = PriestBiS.Patterns and PriestBiS.Patterns[PriestBiS.clientLocale or "enUS"]
+        if patLoc and patLoc[key] ~= nil then return patLoc[key] end
+        local patFallback = PriestBiS.Patterns and PriestBiS.Patterns["enUS"]
+        if patFallback and patFallback[key] ~= nil then return patFallback[key] end
         return key
     end
 })
@@ -186,7 +190,13 @@ function UA.RenderTooltipLines(tooltip, link, comp)
         UA.AddLine(tooltip, format(L["TOOLTIP_UPGRADE"], comp.delta, pctStr), 0, 1, 0)
         
         local replaceTarget = comp.currentItemName or comp.replaceSlot or comp.slot
-        UA.AddLine(tooltip, format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, comp.newScore), 0.9, 0.9, 0.9)
+        local displayNewScore = comp.newScore
+        if comp.projectedOH and comp.projectedOH.score then
+            displayNewScore = displayNewScore + comp.projectedOH.score
+        elseif comp.projectedMH and comp.projectedMH.score then
+            displayNewScore = displayNewScore + comp.projectedMH.score
+        end
+        UA.AddLine(tooltip, format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, displayNewScore), 0.9, 0.9, 0.9)
         
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
@@ -194,6 +204,9 @@ function UA.RenderTooltipLines(tooltip, link, comp)
         end
         if comp.projectedOH and comp.projectedOH.score and comp.projectedOH.score > 0 then
             UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_OH"] .. "|r %s (+%d EP | %s)", comp.projectedOH.name or "Offhand", comp.projectedOH.score, comp.projectedOH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
+        end
+        if comp.projectedMH and comp.projectedMH.score and comp.projectedMH.score > 0 then
+            UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_MH"] .. "|r %s (+%d EP | %s)", comp.projectedMH.name or "Mainhand", comp.projectedMH.score, comp.projectedMH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
         end
         if comp.setBonusEP and comp.setBonusEP > 0 and comp.setBonusDesc then
             local bagNote = comp.fromBags and (" | " .. L["WITH_BAG_PIECES"]) or ""
@@ -217,6 +230,8 @@ function UA.RenderTooltipLines(tooltip, link, comp)
         UA.AddLine(tooltip, " ")
         if comp.roleMismatch then
             UA.AddLine(tooltip, format(L["TOOLTIP_ROLE_MISMATCH"], comp.reason), 1, 0.4, 0.4)
+        elseif comp.isSlotEmpty then
+            UA.AddLine(tooltip, format("|cffaaaaaa[PriestBiS]|r %s", comp.reason), 0.7, 0.7, 0.7)
         elseif comp.delta == 0 then
             UA.AddLine(tooltip, format(L["TOOLTIP_SIDEGRADE"], comp.newScore, comp.currentItemName or comp.slot), 0.7, 0.7, 0.7)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
@@ -225,13 +240,22 @@ function UA.RenderTooltipLines(tooltip, link, comp)
             end
         else
             local curScoreDisplay = (comp.lostSetBonusEP and comp.lostSetBonusEP > 0) and comp.effectiveScore or comp.currentScore
-            UA.AddLine(tooltip, format(L["TOOLTIP_DOWNGRADE"], comp.newScore, curScoreDisplay, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
+            local displayNewScore = comp.newScore
+            if comp.projectedOH and comp.projectedOH.score then
+                displayNewScore = displayNewScore + comp.projectedOH.score
+            elseif comp.projectedMH and comp.projectedMH.score then
+                displayNewScore = displayNewScore + comp.projectedMH.score
+            end
+            UA.AddLine(tooltip, format(L["TOOLTIP_DOWNGRADE"], displayNewScore, curScoreDisplay, comp.currentItemName or comp.slot), 0.8, 0.5, 0.5)
             local breakdown = UA.FormatStatBreakdown(comp.itemData)
             if breakdown and breakdown ~= "" then
                 UA.AddLine(tooltip, "  " .. breakdown, 0.6, 0.6, 0.6)
             end
             if comp.projectedOH and comp.projectedOH.score and comp.projectedOH.score > 0 then
                 UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_OH"] .. "|r %s (+%d EP | %s)", comp.projectedOH.name or "Offhand", comp.projectedOH.score, comp.projectedOH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
+            end
+            if comp.projectedMH and comp.projectedMH.score and comp.projectedMH.score > 0 then
+                UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_MH"] .. "|r %s (+%d EP | %s)", comp.projectedMH.name or "Mainhand", comp.projectedMH.score, comp.projectedMH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
             end
             if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
                 UA.AddLine(tooltip, format(L["TOOLTIP_SET_BREAK"], comp.lostSetBonusDesc or L["DEFAULT_SET_NAME"], comp.lostSetBonusEP), 1, 0.4, 0.4)
@@ -249,39 +273,64 @@ function UA.RenderTooltipLines(tooltip, link, comp)
     if tooltip.Show then
         tooltip:Show()
     end
+    UA.AdjustTooltipSize(tooltip)
+end
 
-    if tooltip._uaCustomLineCount and tooltip._uaCustomLineCount > 0 then
-        local ttName = tooltip.GetName and tooltip:GetName()
-        if ttName and ttName ~= "" then
-            local extraHeight = 0
-            local baseLines = math.max((tooltip.NumLines and tooltip:NumLines()) or 0, 30)
-            local lastFs = nil
-            for c = 1, tooltip._uaCustomLineCount do
-                local lineIdx = baseLines + c
-                local fs = getglobal(ttName .. "TextLeft" .. lineIdx)
-                if fs and fs.IsShown and fs:IsShown() then
-                    lastFs = fs
-                    local h = (fs.GetHeight and fs:GetHeight()) or 14
-                    if h < 10 then h = 13 end
-                    extraHeight = extraHeight + h + 2
-                    local w = (fs.GetStringWidth and fs:GetStringWidth()) or 0
-                    if tooltip.GetWidth and tooltip.SetWidth and tooltip:GetWidth() < (w + 24) then
-                        tooltip:SetWidth(w + 24)
-                    end
-                end
-            end
+function UA.AdjustTooltipSize(tooltip)
+    if not tooltip then return end
+    if tooltip.IsVisible and not tooltip:IsVisible() then return end
+    local customCount = tooltip._uaCustomLineCount or 0
+    if customCount <= 0 then return end
 
-            if extraHeight > 0 and tooltip.GetHeight and tooltip.SetHeight then
-                local newHeight = tooltip:GetHeight() + extraHeight
-                local moneyFrame = getglobal(ttName .. "MoneyFrame")
-                if moneyFrame and moneyFrame.IsVisible and moneyFrame:IsVisible() and lastFs then
-                    moneyFrame:ClearAllPoints()
-                    moneyFrame:SetPoint("TOPLEFT", lastFs, "BOTTOMLEFT", 0, -4)
-                    local mH = (moneyFrame.GetHeight and moneyFrame:GetHeight()) or 16
-                    newHeight = newHeight + mH + 4
-                end
-                tooltip:SetHeight(newHeight)
+    local ttName = tooltip.GetName and tooltip:GetName()
+    if not ttName or ttName == "" then return end
+
+    local baseLines = math.max((tooltip.NumLines and tooltip:NumLines()) or 0, 30)
+    local lastFs = nil
+    local extraHeight = 0
+
+    for c = 1, customCount do
+        local lineIdx = baseLines + c
+        local fs = getglobal(ttName .. "TextLeft" .. lineIdx)
+        if fs and fs.IsShown and fs:IsShown() then
+            lastFs = fs
+            local h = (fs.GetHeight and fs:GetHeight()) or 0
+            if not h or h < 10 then h = 14 end
+            extraHeight = extraHeight + h + 2
+            local w = (fs.GetStringWidth and fs:GetStringWidth()) or 0
+            if tooltip.GetWidth and tooltip.SetWidth and tooltip:GetWidth() < (w + 24) then
+                tooltip:SetWidth(w + 24)
             end
+        end
+    end
+
+    if lastFs and tooltip.GetHeight and tooltip.SetHeight then
+        local curHeight = tooltip:GetHeight() or 0
+        local desiredHeight = curHeight + extraHeight
+
+        local ttTop = tooltip.GetTop and tooltip:GetTop()
+        local fsBottom = lastFs.GetBottom and lastFs:GetBottom()
+        local ttScale = (tooltip.GetEffectiveScale and tooltip:GetEffectiveScale()) or 1
+        local fsScale = (lastFs.GetEffectiveScale and lastFs:GetEffectiveScale()) or ttScale
+
+        if ttTop and fsBottom and ttScale > 0 then
+            local visualSpan = (ttTop * ttScale) - (fsBottom * fsScale)
+            local visualHeight = (visualSpan / ttScale) + 16
+            if visualHeight > desiredHeight then
+                desiredHeight = visualHeight
+            end
+        end
+
+        local moneyFrame = getglobal(ttName .. "MoneyFrame")
+        if moneyFrame and moneyFrame.IsVisible and moneyFrame:IsVisible() then
+            moneyFrame:ClearAllPoints()
+            moneyFrame:SetPoint("TOPLEFT", lastFs, "BOTTOMLEFT", 0, -4)
+            local mH = (moneyFrame.GetHeight and moneyFrame:GetHeight()) or 16
+            desiredHeight = desiredHeight + mH + 4
+        end
+
+        if desiredHeight > curHeight then
+            tooltip:SetHeight(desiredHeight)
         end
     end
 end
@@ -358,6 +407,17 @@ function UA.HookTooltipFrame(tooltip)
         end
     end
 
+    local orig_Show = tooltip.Show
+    if orig_Show then
+        tooltip.Show = function(self)
+            local r1, r2, r3, r4 = orig_Show(self)
+            if UA.AdjustTooltipSize then
+                pcall(UA.AdjustTooltipSize, self)
+            end
+            return r1, r2, r3, r4
+        end
+    end
+
     HookTooltipMethod(tooltip, "SetHyperlink", function(self, link) return link end)
     HookTooltipMethod(tooltip, "SetBagItem", function(self, bag, slot)
         return GetContainerItemLink and GetContainerItemLink(bag, slot)
@@ -420,6 +480,9 @@ function UA.HookAtlasLoot()
                     local tt = getglobal("AtlasLootTooltip") or GameTooltip
                     if tt and tt:IsVisible() then
                         UA.AppendTooltipUpgradeInfo(tt, "item:" .. rawID .. ":0:0:0")
+                        if UA.AdjustTooltipSize then
+                            pcall(UA.AdjustTooltipSize, tt)
+                        end
                     end
                 end
             end
@@ -438,6 +501,9 @@ function UA.HookAtlasLoot()
                     local tt = ItemRefTooltip
                     if tt and tt:IsVisible() then
                         UA.AppendTooltipUpgradeInfo(tt, "item:" .. rawID .. ":0:0:0")
+                        if UA.AdjustTooltipSize then
+                            pcall(UA.AdjustTooltipSize, tt)
+                        end
                     end
                 end
             end

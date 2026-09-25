@@ -95,6 +95,15 @@ local function make_frame(frameType, name)
             elseif link == "item:19958:0:0:0" then
                 self._linesLeft = { "Hazza'rah's Charm of Healing", "Binds when picked up", "Trinket", "Use: Increases the critical effect chance of your Flash Heal and Greater Heal spells by 25%" }
                 self._linesRight = { "", "", "", "" }
+            elseif link == "item:18608:0:0:0" then
+                self._linesLeft = { "Benediction", "Binds when picked up", "Two-Hand", "+10 Stamina", "+31 Intellect", "+12 Spirit", "Classes: Priest", "Equip: Increases healing done by spells and effects by up to 106.", "Equip: Increases the critical effect chance of your Holy spells by 2%." }
+                self._linesRight = { "", "", "Staff", "", "", "", "", "", "" }
+            elseif link == "item:61208:0:0:0" then
+                self._linesLeft = { "Staff of the Dreamer", "Binds when picked up", "Two-Hand", "128 - 218 Damage", "+25 Intellect", "+32 Spirit", "+15 Nature Resistance", "Requires Level 60", "Equip: Increases healing done by spells and effects by up to 134.", "Equip: Increases your attack and casting speed by 1%.", "Equip: Allows 5% of your Mana regeneration to continue while casting.", "Equip: Restores 5 mana per 5 sec." }
+                self._linesRight = { "", "", "Staff", "Speed 3.00", "", "", "", "", "", "", "", "" }
+            elseif link == "item:19382:0:0:0" then
+                self._linesLeft = { "Pure Elementium Band", "Binds when picked up", "Finger", "+9 Intellect", "+10 Spirit", "+10 Stamina", "Equip: Increases healing done by spells and effects by up to 33." }
+                self._linesRight = { "", "", "", "", "", "", "" }
             elseif link == "item:19950:0:0:0" then
                 self._linesLeft = { "Zandalarian Hero Charm", "Binds when picked up", "Trinket", "Classes: Mage, Priest, Warlock", "Requires Level 60", "Use: Increases damage and healing done by magical spells by up to 204. Each time you cast a spell the damage or healing is reduced by 17. Lasts 20 sec." }
                 self._linesRight = { "", "", "", "", "", "" }
@@ -323,19 +332,16 @@ _G.GetItemInfo = function(id)
         local _, _, extracted = string.find(id, "item:(%d+)")
         numId = tonumber(extracted)
     end
-    if numId and _G.UA and _G.UA.ITEM_METADATA and _G.UA.ITEM_METADATA[numId] and _G.UA.ITEM_METADATA[numId].slot then
-        local meta = _G.UA.ITEM_METADATA[numId]
-        local loc = slotToLoc[meta.slot] or "INVTYPE_CHEST"
-        local itype = (meta.slot == "Mainhand" or meta.slot == "Offhand" or meta.slot == "Twohand" or meta.slot == "Wand") and "Weapon" or "Armor"
-        return meta.name or "Item", "item:" .. numId .. ":0:0:0", 4, 60, itype, "Cloth", 1, loc, "Interface\\Icons\\INV_Misc_QuestionMark"
-    end
     if numId == 16817 then return "Girdle of Prophecy", "item:16817:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
     if numId == 16814 then return "Pants of Prophecy", "item:16814:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_LEGS", "Interface\\Icons\\INV_Pants_07" end
     if numId == 16819 then return "Vambraces of Prophecy", "item:16819:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WRIST", "Interface\\Icons\\INV_Bracer_07" end
     if numId == 16812 then return "Gloves of Prophecy", "item:16812:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_HAND", "Interface\\Icons\\INV_Gauntlets_14" end
     if numId == 16925 then return "Belt of Transcendence", "item:16925:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WAIST", "Interface\\Icons\\INV_Belt_03" end
     if numId == 22406 then return "Redemption", "item:22406:0:0:0", 4, 60, "Weapon", "Maces", 1, "INVTYPE_WEAPONMAINHAND", "Interface\\Icons\\INV_Mace_01" end
+    if numId == 19890 then return "Jin'do's Hexxer", "item:19890:0:0:0", 4, 60, "Weapon", "Mace", 1, "INVTYPE_WEAPONMAINHAND", "Interface\\Icons\\INV_Mace_01" end
     if numId == 19820 then return "Consecrated Caduceus", "item:19820:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_HOLDABLE", "Interface\\Icons\\INV_Misc_Horn_01" end
+    if numId == 18608 then return "Benediction", "item:18608:0:0:0", 4, 60, "Weapon", "Staff", 1, "INVTYPE_2HWEAPON", "Interface\\Icons\\INV_Staff_12" end
+    if numId == 61208 then return "Staff of the Dreamer", "item:61208:0:0:0", 4, 60, "Weapon", "Staff", 1, "INVTYPE_2HWEAPON", "Interface\\Icons\\INV_Staff_49" end
     if numId == 20258 then return "Zulian Healer's Staff", "item:20258:0:0:0", 4, 60, "Weapon", "Staves", 1, "INVTYPE_2HWEAPON", "Interface\\Icons\\INV_Staff_08" end
     if numId == 19406 then return "Drake Fang Talisman", "item:19406:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_TRINKET", "Interface\\Icons\\INV_Misc_MonsterClaw_04" end
     if numId == 22721 then return "Band of Servitude", "item:22721:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
@@ -343,6 +349,12 @@ _G.GetItemInfo = function(id)
     if numId == 19998 then return "Gri'lek's Blood", "item:19998:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
     if numId == 19999 then return "Renataki's Soul", "item:19999:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_03" end
     if numId == 16926 then return "Bindings of Transcendence", "item:16926:0:0:0", 4, 60, "Armor", "Cloth", 1, "INVTYPE_WRIST", "Interface\\Icons\\INV_Bracer_07" end
+    if numId and _G.UA and _G.UA.ITEM_METADATA and _G.UA.ITEM_METADATA[numId] and _G.UA.ITEM_METADATA[numId].slot then
+        local meta = _G.UA.ITEM_METADATA[numId]
+        local loc = slotToLoc[meta.slot] or "INVTYPE_CHEST"
+        local itype = (meta.slot == "Mainhand" or meta.slot == "Offhand" or meta.slot == "Twohand" or meta.slot == "Wand") and "Weapon" or "Armor"
+        return meta.name or "Item", "item:" .. numId .. ":0:0:0", 4, 60, itype, "Cloth", 1, loc, "Interface\\Icons\\INV_Misc_QuestionMark"
+    end
     return nil
 end
 _G.GetLocale = function() return "enUS" end
@@ -615,14 +627,19 @@ assert(leatherComp.isUpgrade == false, "Leather boots must NEVER be an upgrade f
 local shieldComp = UA.GetUpgradeComparison(19349, "item:19349:0:0:0")
 print("Healing Shield Equip Check:\t" .. tostring(shieldComp.isUpgrade) .. "\t-\t" .. tostring(shieldComp.reason))
 assert(shieldComp.isUpgrade == false, "Shield must NEVER be an upgrade for Priest")
+assert(shieldComp.isEquipable == false, "Shield must NEVER be equipable by Priest")
+assert(string.find(shieldComp.reason, "Shield"), "Reason must mention Shield: " .. tostring(shieldComp.reason))
+assert(UA.ShowAlert(19349, "item:19349:0:0:0") == false, "ShowAlert must return false and NOT trigger for a Shield")
 
 local swordComp = UA.GetUpgradeComparison(17103, "item:17103:0:0:0")
 print("Mageblade Sword Equip Check:\t" .. tostring(swordComp.isUpgrade) .. "\t-\t" .. tostring(swordComp.reason))
 assert(swordComp.isUpgrade == false, "Sword must NEVER be an upgrade for Priest")
+assert(UA.ShowAlert(17103, "item:17103:0:0:0") == false, "ShowAlert must return false and NOT trigger for a Sword")
 
 local druidComp = UA.GetUpgradeComparison(16900, "item:16900:0:0:0")
 print("Druid-Only Boots Equip Check:\t" .. tostring(druidComp.isUpgrade) .. "\t-\t" .. tostring(druidComp.reason))
 assert(druidComp.isUpgrade == false, "Druid-only boots must NEVER be an upgrade for Priest")
+assert(UA.ShowAlert(16900, "item:16900:0:0:0") == false, "ShowAlert must return false and NOT trigger for Druid-only boots")
 
 print("--- Testing Jin'do's Hexxer (1H Mace Equipability & Stat Scoring) ---")
 local hexxerData = UA.GetItemData(19890, "item:19890:0:0:0")
@@ -706,8 +723,8 @@ print("  Base Item Score (unmutated):\t" .. tostring(set3Comp.newScore))
 print("  Set Bonus EP:\t" .. tostring(set3Comp.setBonusEP))
 print("  Net Delta:\t" .. tostring(set3Comp.delta))
 assert(set3Comp.newScore == 51, "Base score must remain 51 EP (unmutated by set bonus)")
-assert(set3Comp.setBonusEP == 25, "Should award 25 EP for 3-pc Transcendence activation")
-assert(set3Comp.delta == 16, "Net upgrade must be 51 base - 60 current + 25 set bonus = 16 EP")
+assert(set3Comp.setBonusEP == 75, "Should award 75 EP for 3-pc Transcendence activation")
+assert(set3Comp.delta == 66, "Net upgrade must be 51 base - 60 current + 75 set bonus = 66 EP")
 assert(set3Comp.isUpgrade == true, "3-pc Transcendence must be recognized as an upgrade")
 
 -- Test Equipped Tier Piece with Active Set Bonus (Pure score & effective score check)
@@ -722,17 +739,17 @@ ITEM_STAT_CACHE = {}
 local eqTierComp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
 assert(eqTierComp.isEquipped == true, "Should recognize 16925 as equipped")
 assert(eqTierComp.newScore == 51, "Equipped piece base score must remain 51 EP")
-assert(eqTierComp.setBonusEP == 25, "Equipped piece should report 25 EP active set bonus")
-assert(eqTierComp.effectiveScore == 76, "Equipped effective score must be 51 base + 25 set bonus = 76 EP")
+assert(eqTierComp.setBonusEP == 75, "Equipped piece should report 75 EP active set bonus")
+assert(eqTierComp.effectiveScore == 126, "Equipped effective score must be 51 base + 75 set bonus = 126 EP")
 
 -- Test Set Break Downgrade Math (Candidate item higher base stats, but breaks 3-pc set bonus)
--- Belt of Transcendence base is 51 EP. Active 3-pc adds 25 EP -> Effective score = 76 EP.
--- A candidate belt with 60 EP (higher than 51 base) will break 3-pc (dropping count to 2), so 60 vs 76 is a DOWNGRADE of -16 EP.
+-- Belt of Transcendence base is 51 EP. Active 3-pc adds 75 EP -> Effective score = 126 EP.
+-- A candidate belt with 60 EP (higher than 51 base) will break 3-pc (dropping count to 2), so 60 vs 126 is a DOWNGRADE of -66 EP.
 local candComp = UA.GetUpgradeComparison(77777, "item:77777:0:0:0")
 assert(candComp.isUpgrade == false, "Candidate breaking 3-pc bonus should be marked as downgrade")
-assert(candComp.lostSetBonusEP == 25, "Candidate must track 25 EP lost set bonus")
-assert(candComp.effectiveScore == 76, "Effective score must be 51 + 25 = 76 EP")
-assert(candComp.delta == -46, "Net delta must be 30 - 76 = -46 EP")
+assert(candComp.lostSetBonusEP == 75, "Candidate must track 75 EP lost set bonus")
+assert(candComp.effectiveScore == 126, "Effective score must be 51 + 75 = 126 EP")
+assert(candComp.delta == -96, "Net delta must be 30 - 126 = -96 EP")
 
 -- Test Set Completion with Pieces in Bags
 _G.GetInventoryItemLink = function(unit, slotID)
@@ -751,7 +768,7 @@ local bagSetComp = UA.GetUpgradeComparison(16925, "item:16925:0:0:0")
 print("Transcendence Set Completion from Bags Check:")
 print("  Set Bonus EP:\t" .. tostring(bagSetComp.setBonusEP))
 print("  From Bags Flag:\t" .. tostring(bagSetComp.fromBags))
-assert(bagSetComp.setBonusEP == 25, "Should award 25 EP set bonus completing 3-pc with bag pieces")
+assert(bagSetComp.setBonusEP == 75, "Should award 75 EP set bonus completing 3-pc with bag pieces")
 assert(bagSetComp.fromBags == true, "fromBags flag must be true when completing set via bags")
 assert(bagSetComp.isUpgrade == true, "Must be an upgrade")
 UA.cachedBagSetPieces = nil
@@ -1001,6 +1018,7 @@ assert(mh2hComp ~= nil, "Mainhand vs 2H comparison should return valid result")
 assert(mh2hComp.projectedOH ~= nil, "mh2hComp should include projectedOH")
 assert(mh2hComp.isUpgrade == true, "Redemption + Bag/Bank OH should be an upgrade over 2H Staff")
 assert(mh2hComp.delta > 40, "Upgrade delta should reflect 1H + projected OH vs 2H staff")
+_G.GetInventoryItemLink = function(unit, slotId) return mockInventory[slotId] end
 
 -- --- Testing Bagshui-Inspired Character Scoping & Dirty-Flag Debouncing ---
 print("--- Testing Bagshui-Inspired Character Scoping & Dirty-Flag Debouncing ---")
@@ -1053,7 +1071,7 @@ print("--- Testing Curated Raid Quest Tokens & On-Use Trinkets ---")
 local eyeDivData = UA.GetItemData(18646)
 assert(eyeDivData ~= nil, "The Eye of Divinity must have item data")
 assert(eyeDivData.slot == "Twohand", "The Eye of Divinity should map to Twohand slot")
-assert(UA.GetItemScore(eyeDivData) == 215, "The Eye of Divinity should have 215 EP override (Benediction)")
+assert(UA.GetItemScore(eyeDivData) == 138, "The Eye of Divinity should have 138 EP override (Benediction)")
 
 local onyHeadData = UA.GetItemData(19002)
 assert(onyHeadData ~= nil, "Head of Onyxia must have item data")
@@ -1063,7 +1081,7 @@ assert(UA.GetItemScore(onyHeadData) == 85, "Head of Onyxia should have 85 EP ove
 local nefHeadData = UA.GetItemData(19003)
 assert(nefHeadData ~= nil, "Head of Nefarian must have item data")
 assert(nefHeadData.slot == "Ring", "Head of Nefarian should map to Ring slot")
-assert(UA.GetItemScore(nefHeadData) == 74, "Head of Nefarian should have 74 EP override (Pure Elementium Band)")
+assert(UA.GetItemScore(nefHeadData) == 42, "Head of Nefarian should dynamically resolve to Pure Elementium Band (42 EP), got " .. tostring(UA.GetItemScore(nefHeadData)))
 
 local dmcData = UA.GetItemData(19288)
 assert(dmcData ~= nil and UA.GetItemScore(dmcData) == 90, "DMC Blue Dragon should have 90 EP")
@@ -1079,7 +1097,71 @@ assert(marliTrinket ~= nil and UA.GetItemScore(marliTrinket) == 45, "Mar'li's Ey
 
 -- Test upgrade comparison with quest starter token
 local compEye = UA.GetUpgradeComparison(18646)
-assert(compEye ~= nil and compEye.slot == "Twohand", "Eye of Divinity comparison should evaluate against Twohand / MH+OH")
+assert(compEye ~= nil and compEye.slot == "Twohand", "Eye of Divinity comparison should evaluate against Twohand")
+
+-- --- Testing 2H Staff vs 2H Staff Direct Comparison (Benediction vs Staff of the Dreamer) ---
+print("--- Testing 2H Staff vs 2H Staff Direct Comparison ---")
+-- Test Benediction natural stat score (106 Heal, 31 Int, 12 Spi, 2% Crit, 10 Stam)
+local beneItemData = UA.GetItemData(18608, "item:18608:0:0:0")
+assert(beneItemData ~= nil, "Benediction item data should exist")
+assert(beneItemData.ep_override == nil, "Benediction should NOT have an ep_override")
+assert(UA.GetItemScore(beneItemData) == 138, "Benediction natural stat score should be 138 EP")
+
+-- Equip Benediction (slot 16), empty offhand (slot 17)
+local origGetInvLinkBeforeBene = _G.GetInventoryItemLink
+_G.GetInventoryItemLink = function(unit, slot)
+    if slot == 16 then return "item:18608:0:0:0" end -- Benediction equipped
+    if slot == 17 then return nil end                -- No offhand
+    return nil
+end
+ITEM_STAT_CACHE = {}
+
+-- Candidate: Staff of the Dreamer (61208: +134 Heal, +25 Int, +32 Spi, +5 MP5, +5% Casting Regen, +1% Haste)
+local dreamerComp = UA.GetUpgradeComparison(61208, "item:61208:0:0:0")
+assert(dreamerComp ~= nil, "Staff of the Dreamer comparison should not be nil")
+assert(dreamerComp.replaceSlot == "Twohand", "replaceSlot should be 'Twohand' when replacing a 2H staff, not '2H (MH+OH)'")
+assert(dreamerComp.currentItemName == "Benediction", "currentItemName should be 'Benediction', NOT 'Benediction + Offhand': " .. tostring(dreamerComp.currentItemName))
+assert(dreamerComp.currentScore == 138, "currentScore should be 138 EP (Benediction), not 215: " .. tostring(dreamerComp.currentScore))
+assert(dreamerComp.newScore == 208, "Staff of the Dreamer should score 208 EP with active talents, got " .. tostring(dreamerComp.newScore))
+assert(dreamerComp.isUpgrade == true, "Staff of the Dreamer MUST be recognized as an upgrade over Benediction!")
+assert(dreamerComp.delta == 70, "Staff of the Dreamer delta should be +70 EP over Benediction, got " .. tostring(dreamerComp.delta))
+assert(string.find(dreamerComp.reason, "2H Staff Upgrade"), "Reason should indicate 2H Staff Upgrade: " .. tostring(dreamerComp.reason))
+
+-- Test: Player's equipped Benediction has +55 Healing Enchant (item:18608:2504:0:0)
+-- Addon must normalize equipped item to baseLink and NOT falsely flag Staff of the Dreamer as downgrade!
+_G.GetInventoryItemLink = function(unit, slot)
+    if slot == 16 then return "item:18608:2504:0:0" end -- Enchanted Benediction
+    if slot == 17 then return nil end
+    return nil
+end
+ITEM_STAT_CACHE = {}
+UA.ClearCache()
+local dreamerVsEnchantedBene = UA.GetUpgradeComparison(61208, "item:61208:0:0:0")
+assert(dreamerVsEnchantedBene.isUpgrade == true, "Staff of the Dreamer MUST STILL be an upgrade when equipped Benediction has +55 Healing enchant!")
+assert(dreamerVsEnchantedBene.currentScore == 138, "Equipped Benediction must be normalized to base score (138 EP), not inflated by enchant: " .. tostring(dreamerVsEnchantedBene.currentScore))
+assert(dreamerVsEnchantedBene.delta == 70, "Delta must remain +70 EP upgrade: " .. tostring(dreamerVsEnchantedBene.delta))
+
+-- Candidate: Zulian Healer's Staff (20258, 71 EP) - should be a 2H downgrade
+local zhsComp = UA.GetUpgradeComparison(20258, "item:20258:0:0:0")
+assert(zhsComp ~= nil, "ZHS comparison should not be nil")
+assert(zhsComp.replaceSlot == "Twohand", "replaceSlot should be 'Twohand' for downgrade against 2H")
+assert(zhsComp.currentItemName == "Benediction", "currentItemName should be 'Benediction' without offhand: " .. tostring(zhsComp.currentItemName))
+assert(zhsComp.isUpgrade == false, "ZHS should be a downgrade vs Benediction")
+assert(string.find(zhsComp.reason, "2H Staff Downgrade"), "Reason should indicate 2H Staff Downgrade: " .. tostring(zhsComp.reason))
+
+-- Test: 1H equipped with NO offhand vs 2H candidate (should not append '+ Offhand')
+_G.GetInventoryItemLink = function(unit, slot)
+    if slot == 16 then return "item:22406:0:0:0" end -- Redemption (1H)
+    if slot == 17 then return nil end                -- Empty offhand
+    return nil
+end
+ITEM_STAT_CACHE = {}
+local mhOnlyComp = UA.GetUpgradeComparison(61208, "item:61208:0:0:0")
+assert(mhOnlyComp ~= nil, "mhOnlyComp should not be nil")
+assert(mhOnlyComp.currentItemName == "Redemption", "1H equipped with empty offhand should not append '+ Offhand': " .. tostring(mhOnlyComp.currentItemName))
+assert(mhOnlyComp.replaceSlot == "Twohand", "replaceSlot should be 'Twohand': " .. tostring(mhOnlyComp.replaceSlot))
+assert(string.find(mhOnlyComp.reason, "2H Staff Upgrade over 1H Weapon"), "Reason should indicate 2H Staff Upgrade over 1H Weapon: " .. tostring(mhOnlyComp.reason))
+_G.GetInventoryItemLink = origGetInvLinkBeforeBene
 
 -- --- Testing Universal Role Mismatch for Non-Trinket Items ---
 print("--- Testing Universal Role Mismatch for Non-Trinket Items ---")
@@ -1221,12 +1303,426 @@ print("Leather Helm (Class-Restricted) Equip Check:\t" .. tostring(leatherHelmCo
 assert(leatherHelmComp.isUpgrade == false, "Leather helm (Druid/Rogue only) must NOT be an upgrade for Priest")
 assert(leatherHelmComp.roleMismatch == true, "Leather helm must be flagged as roleMismatch")
 
+-- Test 5: Two-Handed Mace (Priests can only use 1H Maces, Daggers, Staves)
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99994:0:0:0" then
+        self._linesLeft = { "The Unstoppable Force", "Binds when picked up", "Two-Hand", "+19 Strength", "+15 Stamina" }
+        self._linesRight = { "", "", "Two-Handed Mace", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 5 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99994 then
+        return "The Unstoppable Force", "item:99994:0:0:0", 4, 60, "Weapon", "Two-Handed Mace", 1, "INVTYPE_2HWEAPON", "Interface\\Icons\\INV_Mace_16"
+    end
+    return origGetItemInfo(id)
+end
+UA.ClearCache()
+local thMaceComp = UA.GetUpgradeComparison(99994, "item:99994:0:0:0")
+print("Two-Handed Mace Equip Check:\t" .. tostring(thMaceComp.isUpgrade) .. "\t-\t" .. tostring(thMaceComp.reason))
+assert(thMaceComp.isEquipable == false, "Two-Handed Mace must NEVER be equipable by Priest")
+assert(thMaceComp.isUpgrade == false, "Two-Handed Mace must NOT be an upgrade for Priest")
+
+-- Test 6: Ranged weapon (Hunter Bow / Gun / Crossbow with INVTYPE_RANGED)
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99995:0:0:0" then
+        self._linesLeft = { "Heartstriker", "Binds when picked up", "Ranged", "+9 Stamina" }
+        self._linesRight = { "", "", "Bow", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 4 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99995 then
+        return "Heartstriker", "item:99995:0:0:0", 4, 60, "Weapon", "Bow", 1, "INVTYPE_RANGED", "Interface\\Icons\\INV_Weapon_Bow_08"
+    end
+    return origGetItemInfo(id)
+end
+UA.ClearCache()
+local bowComp = UA.GetUpgradeComparison(99995, "item:99995:0:0:0")
+print("Hunter Bow Equip Check:\t" .. tostring(bowComp.isUpgrade) .. "\t-\t" .. tostring(bowComp.reason))
+assert(bowComp.isEquipable == false, "Ranged weapons (Bow/Gun/Crossbow) must NEVER be equipable by Priest")
+assert(bowComp.isUpgrade == false, "Hunter bow must NOT be an upgrade for Priest")
+
+-- Test 7: Physical Melee Ring (Strength, Agility, Attack Power without caster stats)
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99996:0:0:0" then
+        self._linesLeft = { "Band of Accuria", "Binds when picked up", "Unique", "Finger", "+16 Agility", "+10 Stamina", "Equip: Increases your chance to hit by 2%." }
+        self._linesRight = { "", "", "", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 7 end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if type(numId) == "number" and numId == 99996 then
+        return "Band of Accuria", "item:99996:0:0:0", 4, 60, "Armor", "Miscellaneous", 1, "INVTYPE_FINGER", "Interface\\Icons\\INV_Jewelry_Ring_15"
+    end
+    return origGetItemInfo(id)
+end
+UA.ClearCache()
+local meleeRingComp = UA.GetUpgradeComparison(99996, "item:99996:0:0:0")
+print("Melee Ring Role Check:\t" .. tostring(meleeRingComp.isUpgrade) .. "\t-\t" .. tostring(meleeRingComp.reason))
+assert(meleeRingComp.roleMismatch == true, "Physical melee ring must be flagged as roleMismatch")
+assert(meleeRingComp.isUpgrade == false, "Physical melee ring must NOT be an upgrade for Holy Priest")
+
+-- Test 8: Physical melee crit (+1% Critical Strike) must not be counted as spell crit
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99997:0:0:0" then
+        self._linesLeft = { "Devilsaur Gauntlets", "Binds when equipped", "Hands", "+9 Stamina", "Equip: +1% Critical Strike" }
+        self._linesRight = { "", "", "Leather", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.UAScanningTooltip._linesLeft = {}
+_G.UAScanningTooltip._linesRight = {}
+_G.UAScanningTooltip.NumLines = function() return 5 end
+UA.ClearCache()
+local physCritStats = UA.ScanItemStats(99997, "item:99997:0:0:0")
+assert(physCritStats.crit == 0, "Physical crit '+1% Critical Strike' must NOT be parsed as spell crit")
+
+-- Restore mocks before Test 9
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+_G.UAScanningTooltip.NumLines = origNumLines
+_G.GetItemInfo = origGetItemInfo
+
+-- Test 9: Offhand comparison when wielding Benediction (2H staff)
+-- Case 9A: Benediction equipped, player has NO 1H weapon in bags
+local origInv16 = mockInventory[16]
+local origInv17 = mockInventory[17]
+local origBag0_1 = mockBags[0] and mockBags[0][1]
+
+mockInventory[16] = "item:18608:0:0:0" -- Benediction equipped in Mainhand
+mockInventory[17] = nil -- Offhand empty while wielding 2H
+mockBags[0] = {}
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+UA.ClearCache()
+
+local candidateOHCompNoMH = UA.GetUpgradeComparison(19820, "item:19820:0:0:0") -- Consecrated Caduceus (Offhand)
+print("OH vs Benediction (No MH in bags):\tUpgrade=" .. tostring(candidateOHCompNoMH.isUpgrade) .. "\tReason=" .. tostring(candidateOHCompNoMH.reason))
+assert(candidateOHCompNoMH.isUpgrade == false, "Offhand cannot be an upgrade over Benediction if player has no 1H weapon")
+assert(string.find(candidateOHCompNoMH.reason, "requires a 1H weapon"), "Reason must mention requiring a 1H weapon: " .. tostring(candidateOHCompNoMH.reason))
+
+-- Case 9B: Benediction equipped, player has Jin'do's Hexxer (19890) in bags
+-- Benediction EP ~ 136. Hexxer EP ~ 61. Caduceus EP ~ 41. Combined = 102 EP vs Benediction (136 EP) -> DOWNGRADE!
+mockBags[0] = { [1] = "item:19890:0:0:0" } -- Jin'do's Hexxer in bags
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+UA.ClearCache()
+
+local candidateOHCompWithHexxer = UA.GetUpgradeComparison(19820, "item:19820:0:0:0") -- Consecrated Caduceus (Offhand)
+print("OH vs Benediction (With Hexxer in bags):\tUpgrade=" .. tostring(candidateOHCompWithHexxer.isUpgrade) .. "\tScore=" .. tostring(candidateOHCompWithHexxer.newScore) .. "\tProjected MH=" .. tostring(candidateOHCompWithHexxer.projectedMH and candidateOHCompWithHexxer.projectedMH.name) .. "\tReason=" .. tostring(candidateOHCompWithHexxer.reason))
+assert(candidateOHCompWithHexxer.isUpgrade == false, "Caduceus + Hexxer (~102 EP) is inferior to Benediction (136 EP) and must NOT be an upgrade")
+assert(candidateOHCompWithHexxer.projectedMH ~= nil, "Should project Jin'do's Hexxer from bags as mainhand")
+assert(candidateOHCompWithHexxer.projectedMH.name == "Jin'do's Hexxer", "Projected MH should be Jin'do's Hexxer")
+
+-- Restore inventory and bags
+mockInventory[16] = origInv16
+mockInventory[17] = origInv17
+if origBag0_1 then
+    mockBags[0] = { [1] = origBag0_1 }
+else
+    mockBags[0] = {}
+end
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+
+-- Test 10: 0 EP item in empty slot
+local origInv13 = mockInventory[13]
+mockInventory[13] = nil -- Empty Trinket1
+
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99999:0:0:0" then
+        self._linesLeft = { "Festival Dumpling", "Binds when picked up", "Trinket", "Use: Eat dumpling." }
+        self._linesRight = { "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+_G.GetItemInfo = function(id)
+    local numId = tonumber(id)
+    if numId == 99999 then
+        return "Festival Dumpling", "item:99999:0:0:0", 1, 1, "Armor", "Miscellaneous", 1, "INVTYPE_TRINKET", "Interface\\Icons\\INV_Misc_Food_01"
+    end
+    return origGetItemInfo(id)
+end
+_G.UAScanningTooltip.NumLines = function() return 4 end
+UA.ClearCache()
+
+local zeroEPTrinketComp = UA.GetUpgradeComparison(99999, "item:99999:0:0:0")
+print("0 EP Empty Slot Check:\tUpgrade=" .. tostring(zeroEPTrinketComp.isUpgrade) .. "\tReason=" .. tostring(zeroEPTrinketComp.reason))
+assert(zeroEPTrinketComp.isUpgrade == false, "0 EP item in empty slot must NOT be an upgrade")
+assert(string.find(zeroEPTrinketComp.reason, "0 EP item"), "Reason must clearly indicate 0 EP item: " .. tostring(zeroEPTrinketComp.reason))
+
+mockInventory[13] = origInv13
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+_G.UAScanningTooltip.NumLines = origNumLines
+_G.GetItemInfo = origGetItemInfo
+
+-- Test 11: 2H Weapon vs Unarmed Player (both MH and OH empty)
+local origInv16_t11 = mockInventory[16]
+local origInv17_t11 = mockInventory[17]
+mockInventory[16] = nil
+mockInventory[17] = nil
+UA.ClearCache()
+
+local unarmed2HComp = UA.GetUpgradeComparison(61208, "item:61208:0:0:0")
+assert(unarmed2HComp ~= nil, "unarmed2HComp should not be nil")
+assert(unarmed2HComp.isSlotEmpty == true, "isSlotEmpty must be true when player is unarmed")
+assert(unarmed2HComp.isUpgrade == true, "Positive EP 2H weapon must be upgrade for unarmed player")
+assert(string.find(unarmed2HComp.reason, "Slot Twohand is empty"), "Reason must mention Slot Twohand is empty: " .. tostring(unarmed2HComp.reason))
+
+-- Test 12: 2H Weapon vs 1H Only Equipped (no OH)
+mockInventory[16] = "item:22406:0:0:0" -- Redemption (1H, 84 EP)
+mockInventory[17] = nil                 -- No OH
+UA.ClearCache()
+
+local twoHandVs1HUpgrade = UA.GetUpgradeComparison(61208, "item:61208:0:0:0") -- Staff of the Dreamer (~157 EP)
+assert(twoHandVs1HUpgrade.isUpgrade == true, "Dreamer must upgrade over 1H Redemption")
+assert(twoHandVs1HUpgrade.replaceSlot == "Twohand", "replaceSlot must be 'Twohand', NOT '2H (MH+OH)'")
+assert(string.find(twoHandVs1HUpgrade.reason, "2H Staff Upgrade over 1H Weapon"), "Reason must be 2H Staff Upgrade over 1H Weapon: " .. tostring(twoHandVs1HUpgrade.reason))
+
+local twoHandVs1HDowngrade = UA.GetUpgradeComparison(20258, "item:20258:0:0:0") -- Zulian Ceremonial Staff (71 EP)
+assert(twoHandVs1HDowngrade.isUpgrade == false, "Zulian Staff (71 EP) must downgrade vs Redemption (84 EP)")
+assert(twoHandVs1HDowngrade.replaceSlot == "Twohand", "replaceSlot must be 'Twohand'")
+assert(string.find(twoHandVs1HDowngrade.reason, "2H Staff Downgrade vs 1H Weapon"), "Reason must be 2H Staff Downgrade vs 1H Weapon: " .. tostring(twoHandVs1HDowngrade.reason))
+
+-- Test 13: 1H Mainhand vs Unarmed Player (MH empty)
+mockInventory[16] = nil
+mockInventory[17] = nil
+UA.ClearCache()
+
+local unarmedMHComp = UA.GetUpgradeComparison(22406, "item:22406:0:0:0")
+assert(unarmedMHComp ~= nil, "unarmedMHComp should not be nil")
+assert(unarmedMHComp.isSlotEmpty == true, "isSlotEmpty must be true when MH is empty")
+assert(unarmedMHComp.isUpgrade == true, "Positive EP 1H weapon must be upgrade for empty MH")
+assert(string.find(unarmedMHComp.reason, "Slot Mainhand is empty"), "Reason must mention Slot Mainhand is empty: " .. tostring(unarmedMHComp.reason))
+
+-- Test 14: 1H Mainhand vs 2H Staff with NO Offhand Available Anywhere
+mockInventory[16] = "item:18608:0:0:0" -- Benediction (2H, 138 EP)
+mockInventory[17] = nil
+local origBag0_t14 = mockBags[0]
+mockBags[0] = {}
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+local charData = UA.GetCharacterData()
+if charData then charData.bestBankOffhand = nil end
+UA.ClearCache()
+
+local mhVs2HNoOH = UA.GetUpgradeComparison(22406, "item:22406:0:0:0") -- Redemption (1H, 84 EP)
+assert(mhVs2HNoOH.isUpgrade == false, "Redemption without OH is inferior to Benediction")
+assert(mhVs2HNoOH.projectedOH == nil, "projectedOH must be nil when no offhand available")
+assert(string.find(mhVs2HNoOH.reason, "No Offhand"), "Reason must state 'No Offhand': " .. tostring(mhVs2HNoOH.reason))
+
+mockBags[0] = origBag0_t14
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+
+-- Test 15: ItemDatabase slot integrity - no gear items in ITEM_METADATA missing slot
+for id, itemMeta in pairs(UA.ITEM_METADATA) do
+    if not itemMeta.rewardID and not string.find(itemMeta.note or "", "token") then
+        assert(itemMeta.slot ~= nil, "Item " .. tostring(id) .. " (" .. tostring(itemMeta.name) .. ") in ITEM_METADATA must have an explicit slot!")
+    end
+end
+
+-- Test 16: UA.GetItemData unknown item without slot does not default to Trinket
+UA.ITEM_METADATA[99998] = { name = "Mystery Item", note = "Unknown slot" }
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99998:0:0:0" then
+        self._linesLeft = { "Mystery Item", "Binds when picked up" }
+        self._linesRight = { "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.ClearCache()
+local mysteryData = UA.GetItemData(99998)
+assert(mysteryData == nil, "Item without tooltip and without metadata slot must return nil, not default to Trinket")
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+UA.ITEM_METADATA[99998] = nil
+
+-- Test 17: Chat loot message full link extraction
+local alertCalledID, alertCalledLink = nil, nil
+local origShowAlert = UA.ShowAlert
+UA.ShowAlert = function(id, link)
+    alertCalledID = id
+    alertCalledLink = link
+    return true
+end
+
+-- Ensure candidate item is an upgrade for test
+mockInventory[16] = nil
+UA.ClearCache()
+UA.CheckLootChatMessage("You receive loot: |cffa335ee|Hitem:22406:0:0:0|h[Redemption]|h|r.")
+assert(alertCalledID == 22406, "Alert should have been triggered for Redemption itemID 22406")
+assert(alertCalledLink == "|cffa335ee|Hitem:22406:0:0:0|h[Redemption]|h|r", "Alert should have passed the full formatted itemLink: " .. tostring(alertCalledLink))
+UA.ShowAlert = origShowAlert
+
+-- Test 18: Third-person loot message containing 'receives' does not trigger self loot
+local falseLootAlert = false
+UA.ShowAlert = function(id, link)
+    falseLootAlert = true
+    return true
+end
+UA.CheckLootChatMessage("Younggun receives loot: |cffa335ee|Hitem:22406:0:0:0|h[Redemption]|h|r.")
+assert(falseLootAlert == false, "Third-person loot message with 'receives' must NOT trigger self alert")
+UA.ShowAlert = origShowAlert
+
+-- Test 19: Uncolored itemLink in raid roll message triggers alert
+local rollAlertID, rollAlertLink = nil, nil
+UA.ShowAlert = function(id, link)
+    rollAlertID = id
+    rollAlertLink = link
+    return true
+end
+mockInventory[16] = nil
+UA.ClearCache()
+UA.CheckRaidRollMessage("Roll for |Hitem:22406:0:0:0|h[Redemption]|h now!")
+assert(rollAlertID == 22406, "Raid roll alert should trigger on uncolored |Hitem:...|h links")
+UA.ShowAlert = origShowAlert
+
+-- Test 20: Variant item links with random suffixes cache independently from base item
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99996:0:15:0" then
+        self._linesLeft = { "Band of the Owl", "Finger", "+10 Intellect", "+10 Spirit" }
+        self._linesRight = { "", "", "", "" }
+    elseif link == "item:99996:0:55:0" then
+        self._linesLeft = { "Band of Healing", "Finger", "+44 Healing Spells" }
+        self._linesRight = { "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.ClearCache()
+local statsOwl = UA.ScanItemStats(99996, "item:99996:0:15:0")
+assert(statsOwl.healing == 0, "Owl band must have 0 healing")
+assert(statsOwl.int == 10, "Owl band must have 10 int")
+
+local statsHeal = UA.ScanItemStats(99996, "item:99996:0:55:0")
+assert(statsHeal.healing == 44, "Healing band must have 44 healing (not cached owl stats)")
+assert(statsHeal.int == 0, "Healing band must have 0 int")
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+
+-- Test 21: Pure 'Spell Damage +X' is DAMAGE_ONLY, not Healing
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99995:0:0:0" then
+        self._linesLeft = { "Shadow Ring", "Finger", "Spell Damage +25" }
+        self._linesRight = { "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.ClearCache()
+local shadowStats = UA.ScanItemStats(99995, "item:99995:0:0:0")
+assert(shadowStats.healing == 0, "Spell Damage +25 must NOT be parsed as healing")
+assert(shadowStats.spell_damage == 25, "Spell Damage +25 must be parsed as spell_damage")
+assert(shadowStats.role == "DPS", "Item with pure spell damage must have role='DPS'")
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+
+-- Test 22: Physical item with Spirit ("of the Gorilla") must be MELEE role and NOT an upgrade
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99996:0:0:0" then
+        self._linesLeft = { "Ring of the Gorilla", "Finger", "+15 Strength", "+10 Spirit" }
+        self._linesRight = { "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.ClearCache()
+local gorillaData = UA.GetItemData(99996, "item:99996:0:0:0")
+assert(gorillaData ~= nil, "Gorilla ring data must exist")
+assert(gorillaData.has_physical == true, "Must detect physical stats (Strength)")
+assert(gorillaData.role == "MELEE", "Strength + Spirit ring must be classified as MELEE, not HEAL")
+local gorillaComp = UA.GetUpgradeComparison(99996, "item:99996:0:0:0")
+assert(gorillaComp.isUpgrade == false, "Gorilla ring must NEVER be an upgrade for Priest")
+assert(gorillaComp.roleMismatch == true, "Gorilla ring must flag roleMismatch")
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+
+-- Test 23: Melee dagger in bags must NOT be paired as best mainhand for offhand comparison
+local origBag0_t23 = mockBags[0]
+local origInv16_t23 = mockInventory[16]
+local origInv17_t23 = mockInventory[17]
+mockInventory[16] = "item:18608:0:0:0" -- Benediction equipped (2H, 138 EP)
+mockInventory[17] = nil
+mockBags[0] = { [1] = "item:99997:0:0:0" } -- Rogue dagger in bags
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99997:0:0:0" then
+        self._linesLeft = { "Perdition's Blade", "One-Hand", "Dagger", "+20 Agility", "Equip: Improves your chance to get a critical strike by 1%." }
+        self._linesRight = { "", "", "", "", "" }
+    elseif link == "item:18608:0:0:0" then
+        self._linesLeft = { "Benediction", "Two-Hand", "Staff", "+31 Intellect", "+12 Spirit", "Equip: Increases healing done by spells and effects by up to 106." }
+        self._linesRight = { "", "", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.bagCacheDirty = true
+UA.ClearCache()
+local mhInBags = UA.ScanBagsForBestMainhand()
+assert(mhInBags == nil, "Melee dagger in bags must NOT be selected as best healing mainhand")
+-- Candidate offhand (Consecrated Caduceus, 19820)
+local ohComp = UA.GetUpgradeComparison(19820, "item:19820:0:0:0")
+assert(ohComp ~= nil, "ohComp must not be nil")
+assert(ohComp.isUpgrade == false, "Offhand cannot upgrade when player only has a melee dagger in bags")
+assert(string.find(ohComp.reason, "requires a 1H weapon"), "Reason must state 1H weapon is required to replace 2H staff: " .. tostring(ohComp.reason))
+mockBags[0] = origBag0_t23
+mockInventory[16] = origInv16_t23
+mockInventory[17] = origInv17_t23
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+
+-- Test 24: 'Requires Priest' must populate restrictedClasses['PRIEST'] and be equipable
+_G.UAScanningTooltip.SetHyperlink = function(self, link)
+    if link == "item:99998:0:0:0" then
+        self._linesLeft = { "Shard of the Pure", "Trinket", "Requires Priest", "+10 Spirit", "Equip: Increases healing done by spells and effects by up to 44." }
+        self._linesRight = { "", "", "", "", "" }
+    else
+        return origSetHyperlink(self, link)
+    end
+end
+UA.ClearCache()
+local priestData = UA.GetItemData(99998, "item:99998:0:0:0")
+assert(priestData.restrictedClasses ~= nil, "restrictedClasses must not be nil for Requires Priest")
+assert(priestData.restrictedClasses["PRIEST"] == true, "restrictedClasses['PRIEST'] must be true")
+assert(UA.IsItemEquipableByPriest(priestData, 99998, "item:99998:0:0:0") == true, "Requires Priest item must be equipable by Priest")
+_G.UAScanningTooltip.SetHyperlink = origSetHyperlink
+
+-- Test 25: Unified bag scan debouncing & cache consistency
+UA.bagCacheDirty = true
+UA.cachedBagOffhand = nil
+UA.cachedBagMainhand = nil
+UA.cachedBagSetPieces = nil
+local ohResult = UA.ScanBagsForBestOffhand()
+assert(UA.bagCacheDirty == false, "bagCacheDirty must be false after ScanBagsForBestOffhand")
+assert(UA.cachedBagSetPieces ~= nil, "cachedBagSetPieces must be populated by unified scan")
+
+mockInventory[16] = origInv16_t11
+mockInventory[17] = origInv17_t11
+UA.ClearCache()
+
 -- Restore originals
 _G.UAScanningTooltip.SetHyperlink = origSetHyperlink
 _G.UAScanningTooltip.NumLines = origNumLines
 _G.GetItemInfo = origGetItemInfo
 
--- --- Testing Non-Equipable Items Rejected As Upgrades (Bug Fix) ---
 print("ALL TESTS (INCLUDING MULTI-LANGUAGE SUITE & TALENT SYNC) PASSED SUCCESSFULLY!")
 
 

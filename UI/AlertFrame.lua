@@ -127,9 +127,14 @@ closeBtn:SetScript("OnClick", function()
 end)
 
 -- Display Alert Function
-function UA.ShowAlert(itemID, itemLink, texture, fromQueue)
+function UA.ShowAlert(itemID, itemLink, texture, fromQueue, isPreview)
     local data = UA.GetItemData(itemID, itemLink)
     if not data then return false end
+
+    local isUpgrade, reason = UA.IsUpgrade(itemID, itemLink)
+    if not isUpgrade and not isPreview then
+        return false
+    end
 
     -- Multi-drop queueing: if currently showing an alert, queue next item
     if alertFrame:IsVisible() and not fromQueue then
@@ -155,6 +160,10 @@ function UA.ShowAlert(itemID, itemLink, texture, fromQueue)
     end
 
     -- Icon texture fallback
+    if not texture and GetItemInfo then
+        local _, _, _, _, _, _, _, _, gTex = GetItemInfo(itemID or itemLink)
+        if gTex and gTex ~= "" then texture = gTex end
+    end
     if texture then
         itemIcon:SetTexture(texture)
     else
@@ -165,11 +174,10 @@ function UA.ShowAlert(itemID, itemLink, texture, fromQueue)
     itemNameText:SetText(format("|cffa335ee%s|r", displayName))
     sourceText:SetText(format(L["TOOLTIP_SOURCE"] .. " %s", data.drop or "Dungeon / Raid Drop"))
 
-    local isUpgrade, reason = UA.IsUpgrade(itemID, itemLink)
     if isUpgrade then
         statsText:SetText(format("|cff00ff00%s|r %s", L["UPGRADE_DETECTED"], reason))
     else
-        statsText:SetText(format("|cffff4444%s|r", reason))
+        statsText:SetText(format("|cffff4444%s|r", reason or "Preview"))
     end
 
     alertFrame:Show()
