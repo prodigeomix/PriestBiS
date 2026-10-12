@@ -38,24 +38,28 @@ Whenever user-facing strings or tooltip injection lines are introduced:
 
 ---
 
-## 3. Local Verification Suite
+## 3. Local Verification & Certification Suite
 
 Before submitting any Pull Request, run the automated verification suite:
 
 ```bash
+# 9-Gate Unified Verification Suite
 python tools/run_tests.py
+
+# Operational Readiness Certification
+python certify_bis.py
 ```
 
-This executes 9 stages of verification:
-1. **Block Balance** (`check_lua.py`): Checks `if/then/end`, `function/end`, `do/end` balance.
-2. **Lua 5.0 Compliance** (`validate_lua50.py`): Enforces Lua 5.0 AST rules.
-3. **Global Scope Leaks** (`scan_global_leaks.py`): Checks for accidental global variable declarations.
-4. **Multi-Locale Patterns** (`test_gear_patterns.py`): Validates stat pattern parsing across all 5 languages.
+This executes 9 stages of automated verification:
+1. **Block Balance** (`check_lua.py`): Checks `if/then/end`, `function/end`, `do/end` balance across all 13 modules.
+2. **Lua 5.0 Compliance** (`validate_lua50.py`): Enforces Lua 5.0 AST rules and Vanilla 1.12 constraints.
+3. **AST Global Scope & Leaks** (`scan_ast_globals.py`): Uses `luaparser` to parse Lua AST and ensure zero undeclared global variables.
+4. **Cross-Module Contracts** (`deep_contract_audit.py`): Audits TOC load order, exported symbols, schema contracts, and top-level load safety.
 5. **API Call Resolution** (`verify_all_api_calls.py`): Verifies that all inter-module functions and tables resolve.
-6. **Database Integrity** (`validate_item_database.py`): Validates item metadata, slot definitions, set breakpoints, and boss drops.
-7. **TOC Syntax Validator** (`validate_lua.lua`): Loads all TOC files in load order via standalone Lua.
-8. **Simulation Suite** (`test_priest_bis.lua`): Full unit test simulation of talent sync, math deltas, and roll hooks.
-9. **Performance Benchmark** (`test_performance.lua`): Validates that tooltip render overhead remains strictly below the 1.0 ms/render budget.
+6. **Multi-Locale Patterns & Negative Tests** (`test_gear_patterns.py`): Validates stat pattern parsing across all 5 languages and asserts negative stat rejection.
+7. **Database Integrity** (`validate_item_database.py`): Validates item metadata, slot definitions, set breakpoints, and boss drops.
+8. **Golden-Table EP Regression** (`golden_table_test.py`): Asserts zero EP valuation drift against canonical reference items and set bonuses.
+9. **In-Memory Lua VM Simulation** (`test_simulation_vm.py`): Runs runtime simulation in embedded Lua (`lupa`) testing talents, EP scoring, dual-slot comparisons, and sets.
 
 ---
 

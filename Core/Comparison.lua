@@ -506,6 +506,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         note = itemData.note,
         setBonusEP = 0,
         setBonusDesc = nil,
+        bagSetBonusEP = 0,
+        bagSetBonusDesc = nil,
         fromBags = false,
         lostSetBonusEP = 0,
         lostSetBonusDesc = nil,
@@ -641,12 +643,14 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         -- Evaluate Option 1: Replace Ring1
         local setGain1, setDesc1, fromBags1 = 0, nil, false
+        local bagGain1, bagDesc1 = 0, nil
         if itemData.setName then
             local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Ring1")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain1, setDesc1 = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain1 > 0 and bagCount > 0 and eqCount < curCount then fromBags1 = true end
+            setGain1, setDesc1 = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+            if setGain1 == 0 and totalCount > eqCount then
+                bagGain1, bagDesc1 = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+                if bagGain1 > 0 then fromBags1 = true end
+            end
         end
         local setLoss1, setLossDesc1 = 0, nil
         if r1 and r1.setName and (not itemData.setName or itemData.setName ~= r1.setName) then
@@ -658,12 +662,14 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         -- Evaluate Option 2: Replace Ring2
         local setGain2, setDesc2, fromBags2 = 0, nil, false
+        local bagGain2, bagDesc2 = 0, nil
         if itemData.setName then
             local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Ring2")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain2, setDesc2 = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain2 > 0 and bagCount > 0 and eqCount < curCount then fromBags2 = true end
+            setGain2, setDesc2 = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+            if setGain2 == 0 and totalCount > eqCount then
+                bagGain2, bagDesc2 = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+                if bagGain2 > 0 then fromBags2 = true end
+            end
         end
         local setLoss2, setLossDesc2 = 0, nil
         if r2 and r2.setName and (not itemData.setName or itemData.setName ~= r2.setName) then
@@ -681,6 +687,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         local bestItemDelta = 0
         local bestSetGain = 0
         local bestSetDesc = nil
+        local bestBagGain = 0
+        local bestBagDesc = nil
         local bestSetLoss = 0
         local bestSetLossDesc = nil
         local bestFromBags = false
@@ -693,6 +701,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             bestItemDelta = itemDelta1
             bestSetGain = setGain1
             bestSetDesc = setDesc1
+            bestBagGain = bagGain1
+            bestBagDesc = bagDesc1
             bestSetLoss = setLoss1
             bestSetLossDesc = setLossDesc1
             bestFromBags = fromBags1
@@ -704,6 +714,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             bestItemDelta = itemDelta2
             bestSetGain = setGain2
             bestSetDesc = setDesc2
+            bestBagGain = bagGain2
+            bestBagDesc = bagDesc2
             bestSetLoss = setLoss2
             bestSetLossDesc = setLossDesc2
             bestFromBags = fromBags2
@@ -719,6 +731,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         result.itemDelta = bestItemDelta
         result.setBonusEP = bestSetGain
         result.setBonusDesc = bestSetDesc
+        result.bagSetBonusEP = bestBagGain
+        result.bagSetBonusDesc = bestBagDesc
         result.fromBags = bestFromBags
         result.lostSetBonusEP = bestSetLoss
         result.lostSetBonusDesc = bestSetLossDesc
@@ -761,12 +775,14 @@ function UA.GetUpgradeComparison(itemID, itemLink)
 
         -- Set gain for 2H
         local setGain, setDesc, fromBags = 0, nil, false
+        local bagSetBonusEP, bagSetBonusDesc = 0, nil
         if itemData.setName then
             local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Mainhand")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain > 0 and bagCount > 0 and eqCount < curCount then fromBags = true end
+            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+            if setGain == 0 and totalCount > eqCount then
+                bagSetBonusEP, bagSetBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+                if bagSetBonusEP > 0 then fromBags = true end
+            end
         end
 
         -- Set loss from removing Mainhand or Offhand
@@ -829,6 +845,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         result.itemDelta = itemDelta
         result.setBonusEP = setGain
         result.setBonusDesc = setDesc
+        result.bagSetBonusEP = bagSetBonusEP or 0
+        result.bagSetBonusDesc = bagSetBonusDesc
         result.fromBags = fromBags
         result.lostSetBonusEP = totalSetLoss
         result.lostSetBonusDesc = (table.getn(lostDescs) > 0) and table.concat(lostDescs, "; ") or nil
@@ -869,12 +887,14 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     if slot == "Mainhand" then
         local currentMH = UA.GetEquippedItemData("Mainhand")
         local setGain, setDesc, fromBags = 0, nil, false
+        local bagSetBonusEP, bagSetBonusDesc = 0, nil
         if itemData.setName then
             local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Mainhand")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain > 0 and bagCount > 0 and eqCount < curCount then fromBags = true end
+            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+            if setGain == 0 and totalCount > eqCount then
+                bagSetBonusEP, bagSetBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+                if bagSetBonusEP > 0 then fromBags = true end
+            end
         end
 
         local setLoss, setLossDesc = 0, nil
@@ -902,6 +922,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             result.itemDelta = itemDelta
             result.setBonusEP = setGain
             result.setBonusDesc = setDesc
+            result.bagSetBonusEP = bagSetBonusEP or 0
+            result.bagSetBonusDesc = bagSetBonusDesc
             result.fromBags = fromBags
             result.lostSetBonusEP = setLoss
             result.lostSetBonusDesc = setLossDesc
@@ -977,12 +999,14 @@ function UA.GetUpgradeComparison(itemID, itemLink)
         local isCurrently2H = currentMH and (currentMH.slot == "Twohand" or currentMH.slot == "Staff" or currentMH.equipLoc == "INVTYPE_2HWEAPON")
 
         local setGain, setDesc, fromBags = 0, nil, false
+        local bagSetBonusEP, bagSetBonusDesc = 0, nil
         if itemData.setName then
             local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, "Offhand")
-            local curCount = totalCount
-            local projectedCount = curCount + 1
-            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-            if setGain > 0 and bagCount > 0 and eqCount < curCount then fromBags = true end
+            setGain, setDesc = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+            if setGain == 0 and totalCount > eqCount then
+                bagSetBonusEP, bagSetBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+                if bagSetBonusEP > 0 then fromBags = true end
+            end
         end
 
         if isCurrently2H then
@@ -1025,6 +1049,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
             result.itemDelta = itemDelta
             result.setBonusEP = setGain
             result.setBonusDesc = setDesc
+            result.bagSetBonusEP = bagSetBonusEP or 0
+            result.bagSetBonusDesc = bagSetBonusDesc
             result.fromBags = fromBags
             result.lostSetBonusEP = setLoss
             result.lostSetBonusDesc = setLossDesc
@@ -1108,13 +1134,16 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     local setBonusEP = 0
     local setBonusDesc = nil
     local fromBags = false
+    local bagSetBonusEP = 0
+    local bagSetBonusDesc = nil
     if itemData.setName then
         local eqCount, totalCount, bagCount = UA.GetSetPieceCount(itemData.setName, slot)
-        local curCount = totalCount
-        local projectedCount = curCount + 1
-        setBonusEP, setBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, curCount, projectedCount)
-        if setBonusEP > 0 and bagCount > 0 and eqCount < curCount then
-            fromBags = true
+        setBonusEP, setBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, eqCount, eqCount + 1)
+        if setBonusEP == 0 and totalCount > eqCount then
+            bagSetBonusEP, bagSetBonusDesc = UA.CalculateSetBreakpoints(itemData.setName, totalCount, totalCount + 1)
+            if bagSetBonusEP > 0 then
+                fromBags = true
+            end
         end
     end
 
@@ -1139,6 +1168,8 @@ function UA.GetUpgradeComparison(itemID, itemLink)
     result.itemDelta = itemDelta
     result.setBonusEP = setBonusEP
     result.setBonusDesc = setBonusDesc
+    result.bagSetBonusEP = bagSetBonusEP or 0
+    result.bagSetBonusDesc = bagSetBonusDesc
     result.fromBags = fromBags
     result.lostSetBonusEP = lostSetBonusEP
     result.lostSetBonusDesc = lostSetBonusDesc

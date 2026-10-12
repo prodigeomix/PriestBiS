@@ -196,7 +196,15 @@ function UA.RenderTooltipLines(tooltip, link, comp)
         elseif comp.projectedMH and comp.projectedMH.score then
             displayNewScore = displayNewScore + comp.projectedMH.score
         end
-        UA.AddLine(tooltip, format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r)", replaceTarget, comp.currentScore, displayNewScore), 0.9, 0.9, 0.9)
+        local setTag = ""
+        if comp.netSetDelta and comp.netSetDelta ~= 0 then
+            if comp.netSetDelta > 0 then
+                setTag = format(" |cff00ff00[Set +%d]|r", comp.netSetDelta)
+            else
+                setTag = format(" |cffff4444[Set -%d]|r", math.abs(comp.netSetDelta))
+            end
+        end
+        UA.AddLine(tooltip, format("  |cffffffff" .. L["TOOLTIP_REPLACES"] .. "|r |cffa335ee%s|r (|cffffd100%d EP|r -> |cff00ff00%d EP|r%s)", replaceTarget, comp.currentScore, displayNewScore, setTag), 0.9, 0.9, 0.9)
         
         local breakdown = UA.FormatStatBreakdown(comp.itemData)
         if breakdown and breakdown ~= "" then
@@ -209,8 +217,10 @@ function UA.RenderTooltipLines(tooltip, link, comp)
             UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_MH"] .. "|r %s (+%d EP | %s)", comp.projectedMH.name or "Mainhand", comp.projectedMH.score, comp.projectedMH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
         end
         if comp.setBonusEP and comp.setBonusEP > 0 and comp.setBonusDesc then
-            local bagNote = comp.fromBags and (" | " .. L["WITH_BAG_PIECES"]) or ""
-            UA.AddLine(tooltip, format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP%s)", comp.setBonusDesc, comp.setBonusEP, bagNote), 0, 1, 0)
+            UA.AddLine(tooltip, format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
+        end
+        if comp.bagSetBonusEP and comp.bagSetBonusEP > 0 and comp.bagSetBonusDesc then
+            UA.AddLine(tooltip, format("  |cff71d5ff" .. (L["TOOLTIP_SET_POTENTIAL"] or "Set Potential (with bag pieces):") .. "|r %s (+%d EP)", comp.bagSetBonusDesc, comp.bagSetBonusEP), 0.4, 0.8, 1)
         end
         if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
             UA.AddLine(tooltip, format(L["TOOLTIP_SET_BREAK"], comp.lostSetBonusDesc or L["DEFAULT_SET_NAME"], comp.lostSetBonusEP), 1, 0.4, 0.4)
@@ -257,6 +267,12 @@ function UA.RenderTooltipLines(tooltip, link, comp)
             if comp.projectedMH and comp.projectedMH.score and comp.projectedMH.score > 0 then
                 UA.AddLine(tooltip, format("  |cff71d5ff" .. L["TOOLTIP_PROJECTED_MH"] .. "|r %s (+%d EP | %s)", comp.projectedMH.name or "Mainhand", comp.projectedMH.score, comp.projectedMH.source or L["SOURCE_BAGS"]), 0.6, 0.8, 1)
             end
+            if comp.setBonusEP and comp.setBonusEP > 0 and comp.setBonusDesc then
+                UA.AddLine(tooltip, format("  |cff00ff00" .. L["TOOLTIP_SET_BONUS"] .. "|r %s (+%d EP)", comp.setBonusDesc, comp.setBonusEP), 0, 1, 0)
+            end
+            if comp.bagSetBonusEP and comp.bagSetBonusEP > 0 and comp.bagSetBonusDesc then
+                UA.AddLine(tooltip, format("  |cff71d5ff" .. (L["TOOLTIP_SET_POTENTIAL"] or "Set Potential (with bag pieces):") .. "|r %s (+%d EP)", comp.bagSetBonusDesc, comp.bagSetBonusEP), 0.4, 0.8, 1)
+            end
             if comp.lostSetBonusEP and comp.lostSetBonusEP > 0 then
                 UA.AddLine(tooltip, format(L["TOOLTIP_SET_BREAK"], comp.lostSetBonusDesc or L["DEFAULT_SET_NAME"], comp.lostSetBonusEP), 1, 0.4, 0.4)
             end
@@ -279,13 +295,56 @@ end
 function UA.AdjustTooltipSize(tooltip)
     if not tooltip then return end
     if tooltip.IsVisible and not tooltip:IsVisible() then return end
-    local customCount = tooltip._uaCustomLineCount or 0
-    if customCount <= 0 then return end
 
     local ttName = tooltip.GetName and tooltip:GetName()
     if not ttName or ttName == "" then return end
 
-    local baseLines = math.max((tooltip.NumLines and tooltip:NumLines()) or 0, 30)
+    local nativeCount = (tooltip.NumLines and tooltip:NumLines()) or 0
+    local customCount = tooltip._uaCustomLineCount or 0
+
+    -- Auto-expand tooltip width across ALL visible lines (both native 1..nativeCount and custom lines)
+    -- to prevent right-edge clipping on long comparison strings or wide localized text
+    local maxLineWidth = 0
+    for i = 1, nativeCount do
+        local leftFs = getglobal(ttName .. "TextLeft" .. i)
+        local rightFs = getglobal(ttName .. "TextRight" .. i)
+        local wLeft = (leftFs and leftFs.GetStringWidth and leftFs:GetStringWidth()) or 0
+        local wRight = (rightFs and rightFs.GetStringWidth and rightFs:GetStringWidth()) or 0
+        local lineW = 0
+        if wLeft > 0 and wRight > 0 then
+            lineW = wLeft + wRight + 40
+        elseif wLeft > 0 then
+            lineW = wLeft + 28
+        elseif wRight > 0 then
+            lineW = wRight + 28
+        end
+        if lineW > maxLineWidth then
+            maxLineWidth = lineW
+        end
+    end
+
+    local baseLines = math.max(nativeCount, 30)
+    for c = 1, customCount do
+        local lineIdx = baseLines + c
+        local fs = getglobal(ttName .. "TextLeft" .. lineIdx)
+        if fs and fs.IsShown and fs:IsShown() then
+            local w = (fs.GetStringWidth and fs:GetStringWidth()) or 0
+            local lineW = w + 28
+            if lineW > maxLineWidth then
+                maxLineWidth = lineW
+            end
+        end
+    end
+
+    if tooltip.GetWidth and tooltip.SetWidth and maxLineWidth > 0 then
+        local curW = tooltip:GetWidth() or 0
+        if curW < maxLineWidth then
+            tooltip:SetWidth(maxLineWidth)
+        end
+    end
+
+    if customCount <= 0 then return end
+
     local lastFs = nil
     local extraHeight = 0
 
@@ -297,10 +356,6 @@ function UA.AdjustTooltipSize(tooltip)
             local h = (fs.GetHeight and fs:GetHeight()) or 0
             if not h or h < 10 then h = 14 end
             extraHeight = extraHeight + h + 2
-            local w = (fs.GetStringWidth and fs:GetStringWidth()) or 0
-            if tooltip.GetWidth and tooltip.SetWidth and tooltip:GetWidth() < (w + 24) then
-                tooltip:SetWidth(w + 24)
-            end
         end
     end
 

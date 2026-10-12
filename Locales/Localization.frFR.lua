@@ -73,7 +73,7 @@ PriestBiS:RegisterLocale("frFR", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Activer/désactiver les infos de régression",
     ["SLASH_DB"] = "  /pbis db         - Liste de la base d'améliorations prioritaires",
     ["SLASH_HELP"] = "  /pbis help       - Affiche ce message d'aide",
-    ["SLASH_VERSION"] = "v1.3.4 par |cffffffffprodigeomix|r (Carbon) - Moniteur d'amélioration en temps réel pour Prêtres Sacré & Discipline.",
+    ["SLASH_VERSION"] = "v1.3.5 par |cffffffffprodigeomix|r (Carbon) - Moniteur d'amélioration en temps réel pour Prêtres Sacré & Discipline.",
     ["SLASH_HELP_PROMPT"] = "Tapez |cff00ff00/pbis help|r ou |cff00ff00/bis gear|r pour les commandes.",
     ["CURATED_UPGRADES_TITLE"] = "Améliorations prioritaires recommandées :",
     ["TRACKED_GEAR_TITLE"] = "Équipement actuellement suivi (requête directe) :",
@@ -97,6 +97,7 @@ PriestBiS:RegisterLocale("frFR", {
 PriestBiS:RegisterPatterns("frFR", {
     HEALING = {
         "Augmente les soins prodigués par les sorts et les effets d'un maximum de (%d+)",
+        "Augmente les soins prodigués par les sorts et effets de (%d+)",
         "Augmente les soins prodigués d'un maximum de (%d+)",
         "Augmente les soins d'un maximum de (%d+)",
         "%+(%d+) aux sorts de soins",

@@ -18,6 +18,7 @@ ADDON_DIR = os.path.abspath(os.path.join(SCRIPT_DIR, ".."))
 
 BANNED_PATTERNS = [
     (r'(?<![A-Za-z0-9_])#\s*[A-Za-z0-9_\{\(\"\']', "Length operator '#' (Lua 5.1+). Use 'table.getn(t)' or 'string.len(s)'."),
+    (r'(?<![A-Za-z0-9_])%\s*[A-Za-z0-9_\{\(\"\']', "Modulo operator '%' (Lua 5.1+). Use 'math.mod(a, b)' or 'mod(a, b)'."),
     (r'(?<![A-Za-z0-9_])//(?![A-Za-z0-9_])', "Integer division operator '//' (Lua 5.3+). Use 'math.floor(a / b)'."),
     (r'\bgoto\s+[A-Za-z0-9_]+', "'goto' statement (Lua 5.2+)."),
     (r'::[A-Za-z0-9_]+::', "Label marker '::label::' (Lua 5.2+)."),
@@ -25,6 +26,7 @@ BANNED_PATTERNS = [
     (r'\bstring\.gmatch\b', "'string.gmatch' (Lua 5.1+). Use 'string.gfind'."),
     (r'\btable\.unpack\b', "'table.unpack' (Lua 5.1+). Use global 'unpack()'."),
     (r'\btable\.pack\b', "'table.pack' (Lua 5.1+)."),
+    (r'\bselect\s*\(', "'select()' (Lua 5.1+). Index into 'arg' table directly."),
     (r'\bmath\.huge\b', "'math.huge' (Lua 5.1+). Use '1/0' or 999999."),
     (r'\bhooksecurefunc\b', "'hooksecurefunc' (WoW 2.0+). Use classic function detouring."),
     (r':HookScript\b', "':HookScript' (WoW 2.0+). Use standard 1.12 hook assignment."),

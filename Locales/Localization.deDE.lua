@@ -73,7 +73,7 @@ PriestBiS:RegisterLocale("deDE", {
     ["SLASH_DOWNGRADES"] = "  /pbis downgrades - Downgrade-/Gleichwertig-Infos an/aus",
     ["SLASH_DB"] = "  /pbis db         - Liste der kuratierten Upgrade-Datenbank",
     ["SLASH_HELP"] = "  /pbis help       - Zeige diese Hilfe",
-    ["SLASH_VERSION"] = "v1.3.4 von |cffffffffprodigeomix|r (Carbon) - Echtzeit-Upgrade-Monitor für Heilig- & Disziplin-Priester.",
+    ["SLASH_VERSION"] = "v1.3.5 von |cffffffffprodigeomix|r (Carbon) - Echtzeit-Upgrade-Monitor für Heilig- & Disziplin-Priester.",
     ["SLASH_HELP_PROMPT"] = "Tippe |cff00ff00/pbis help|r oder |cff00ff00/bis gear|r für Befehle.",
     ["CURATED_UPGRADES_TITLE"] = "Kuratierte Prioritäts-Upgrades:",
     ["TRACKED_GEAR_TITLE"] = "Aktuell verfolgte Ausrüstung (Live-Abfrage):",
@@ -98,6 +98,7 @@ PriestBiS:RegisterPatterns("deDE", {
     HEALING = {
         "Erhöht die durch Zauber und Effekte verursachte Heilung um bis zu (%d+)",
         "Erhöht durch Zauber und Effekte verursachte Heilung um bis zu (%d+)",
+        "Erhöht durch Zauber und magische Effekte verursachte Heilung um bis zu (%d+)",
         "Erhöht durch Zauber und magische Effekte zugefügte Heilung um bis zu (%d+)",
         "Erhöht Heilung um bis zu (%d+)",
         "%+(%d+) Heilzauber",

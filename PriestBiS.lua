@@ -282,6 +282,10 @@ eventFrame:SetScript("OnEvent", function()
         if not PriestBiSDB then PriestBiSDB = {} end
         if PriestBiSDB.tooltipAlerts == nil then PriestBiSDB.tooltipAlerts = true end
         if PriestBiSDB.showDowngrades == nil then PriestBiSDB.showDowngrades = true end
+        if PriestBiSDB.weightProfile == nil then PriestBiSDB.weightProfile = "standard" end
+        if UA.ApplyStatWeights then
+            UA.ApplyStatWeights(PriestBiSDB.customWeights or PriestBiSDB.weightProfile)
+        end
         if UA.RestoreAlertFramePosition then
             UA.RestoreAlertFramePosition()
         end
@@ -305,6 +309,7 @@ eventFrame:SetScript("OnEvent", function()
         UA.cachedBagOffhand = nil
         UA.cachedBagMainhand = nil
         UA.cachedBagSetPieces = nil
+        UA.ClearCache()
     elseif event == "BANKFRAME_OPENED" or event == "PLAYERBANKSLOTS_CHANGED" or event == "PLAYERBANKBAGSLOTS_CHANGED" then
         UA.ScanBankForBestOffhand()
         UA.ScanBankForBestMainhand()
@@ -336,7 +341,16 @@ SLASH_PriestBiS3 = "/bis"
 SLASH_PriestBiS4 = "/ua"
 
 local function PriestBiS_SlashHandler(msg)
-    local cmd = string.lower(msg or "")
+    local args = {}
+    if msg then
+        for w in string.gfind(msg, "%S+") do
+            table.insert(args, w)
+        end
+    end
+    local cmd = args[1] and string.lower(args[1]) or ""
+    local arg1 = args[2]
+    local arg2 = args[3]
+
     local db = PriestBiSDB or {}
     PriestBiSDB = db
 
@@ -354,6 +368,65 @@ local function PriestBiS_SlashHandler(msg)
     elseif cmd == "downgrades" or cmd == "downgrade" then
         db.showDowngrades = not db.showDowngrades
         UA_Print(L["TOOLTIP_DOWNGRADES_STATUS"] .. (db.showDowngrades and L["ENABLED"] or L["DISABLED"]))
+    elseif cmd == "weights" or cmd == "weight" then
+        local activeProfile = UA.GetActiveWeightProfile and UA.GetActiveWeightProfile() or (db.weightProfile or "standard")
+        UA_Print(format(L["WEIGHTS_CURRENT_PROFILE"] or "Active Stat Weights Profile: |cff00ff00%s|r", activeProfile))
+        local w = UA.STAT_WEIGHTS or {}
+        UA_Print(format("  Heal: |cffffd100%.2f|r | MP5: |cffffd100%.2f|r | Int: |cffffd100%.2f|r | Spi: |cffffd100%.2f|r | Crit: |cffffd100%.2f|r | Stam: |cffffd100%.2f|r",
+            w.healing or 1, w.mp5 or 2, w.int or 0.5, w.spi or 0.5, w.spell_crit or 2, w.stam or 0))
+    elseif cmd == "preset" then
+        if not arg1 then
+            local activeProfile = UA.GetActiveWeightProfile and UA.GetActiveWeightProfile() or (db.weightProfile or "capybara")
+            UA_Print(format(L["WEIGHTS_CURRENT_PROFILE"] or "Active Stat Weights Profile: |cff00ff00%s|r", activeProfile))
+            UA_Print("Available presets: |cff00ff00capybara|r (standard 5-stat), |cff00ff00throughput|r")
+            UA_Print("Usage: /pbis preset <capybara|throughput>")
+        else
+            local targetPreset = string.lower(arg1)
+            if targetPreset == "standard" or targetPreset == "capybara" then
+                db.weightProfile = "capybara"
+                db.customWeights = nil
+                UA.ApplyStatWeights("capybara")
+                UA.bagCacheDirty = true
+                UA_Print(format(L["WEIGHTS_PRESET_SWITCHED"] or "Switched stat weights profile to |cff00ff00%s|r.", "Capybara (Mana-weighted)"))
+            elseif targetPreset == "throughput" then
+                db.weightProfile = "throughput"
+                db.customWeights = nil
+                UA.ApplyStatWeights("throughput")
+                UA.bagCacheDirty = true
+                UA_Print(format(L["WEIGHTS_PRESET_SWITCHED"] or "Switched stat weights profile to |cff00ff00%s|r.", "throughput"))
+            else
+                UA_Print(format(L["WEIGHTS_PRESET_UNKNOWN"] or "Unknown profile '%s'. Available presets: standard (Capybara), throughput.", arg1))
+            end
+        end
+    elseif cmd == "setweight" then
+        if not arg1 or not arg2 then
+            UA_Print(L["WEIGHTS_USAGE"] or "Usage: /pbis setweight <heal|mp5|int|spi|crit|stam> <number>")
+        else
+            local statKey = string.lower(arg1)
+            if statKey == "heal" or statKey == "healing" then statKey = "healing"
+            elseif statKey == "crit" or statKey == "spell_crit" then statKey = "spell_crit"
+            elseif statKey == "spirit" then statKey = "spi"
+            elseif statKey == "intellect" then statKey = "int"
+            elseif statKey == "stamina" then statKey = "stam"
+            end
+
+            local val = tonumber(arg2)
+            if val and UA.STAT_WEIGHTS and UA.STAT_WEIGHTS[statKey] ~= nil then
+                if not db.customWeights then
+                    db.customWeights = {}
+                    for k, v in pairs(UA.STAT_WEIGHTS) do
+                        db.customWeights[k] = v
+                    end
+                end
+                db.customWeights[statKey] = val
+                db.weightProfile = "custom"
+                UA.ApplyStatWeights(db.customWeights)
+                UA.bagCacheDirty = true
+                UA_Print(format(L["WEIGHTS_UPDATED"] or "Updated stat weight |cff00ff00%s|r to |cffffd100%s|r.", statKey, tostring(val)))
+            else
+                UA_Print(L["WEIGHTS_USAGE"] or "Usage: /pbis setweight <heal|mp5|int|spi|crit|stam> <number>")
+            end
+        end
     elseif cmd == "db" or cmd == "database" then
         UA_Print(L["CURATED_UPGRADES_TITLE"])
         for id, meta in pairs(UA.ITEM_METADATA) do
@@ -423,6 +496,9 @@ local function PriestBiS_SlashHandler(msg)
         UA_Print(L["SLASH_TOGGLE"])
         UA_Print(L["SLASH_TOOLTIP"])
         UA_Print(L["SLASH_DOWNGRADES"])
+        UA_Print(L["SLASH_WEIGHTS"] or "  /pbis weights    - Show active stat weights and profile")
+        UA_Print(L["SLASH_PRESET"] or "  /pbis preset <standard|throughput> - Switch stat weight profile")
+        UA_Print(L["SLASH_SETWEIGHT"] or "  /pbis setweight <stat> <val>       - Set custom stat weight")
         UA_Print(L["SLASH_DB"])
         UA_Print(L["SLASH_HELP"])
     else

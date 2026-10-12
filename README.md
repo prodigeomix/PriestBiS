@@ -70,7 +70,7 @@ Never see false upgrade alerts on items your Priest cannot wear:
 * **Smart 2H-to-1H Projection (Bags & Bank Scanner):** When inspecting a 1H Mace or Dagger while wielding a 2H Staff (where the Off-Hand slot is empty), PriestBiS dynamically pulls your best owned Off-Hand from your **Bags or Bank** and calculates:
   $$\text{Projected Score} = \text{EP}(\text{Candidate 1H}) + \text{EP}(\text{Best Owned Bag/Bank OH})$$
   $$\Delta = \text{Projected Score} - \text{EP}(\text{Equipped 2H Staff})$$
-  Renders an informative badge directly in tooltips: `Projected OH: Consecrated Caduceus (+39 EP | Bags)`.
+  Renders an informative badge directly in tooltips: `Projected OH: Jin'do's Bag of Whammies (+33 EP | Bags)`.
 * **Dynamic Set Bonus Breakpoints:** Recognizes when equipping an item reaches a set breakpoint (e.g. 2 pieces $\to$ 3 pieces of *Vestments of Transcendence* / *卓越法衣* / *Одеяния Превосходства*) and awards the set bonus EP value directly (+25 EP for 3-pc T2).
 
 ---
@@ -116,6 +116,31 @@ Use `/pbis`, `/bis`, or `/priestbis` in-game:
 2. Extract the folder into your `World of Warcraft/Interface/AddOns/` directory.
 3. Ensure the folder is named **`PriestBiS`**.
 4. Launch the game and type `/pbis gear` or `/bis` to verify!
+
+---
+
+## 🧪 Automated Verification & Testing Suite
+
+PriestBiS incorporates an enterprise-grade automated verification suite adapted from HolyPriest:
+
+```bash
+# Run the 9-gate verification suite
+python tools/run_tests.py
+
+# One-click operational readiness certification
+python certify_bis.py
+```
+
+### Verification Gates:
+1. **Block Balance (`tools/check_lua.py`):** Ensures all Lua syntax blocks (`function`, `if`, `do`, `while`, `repeat`, `end`, `until`) are balanced across all 13 modules.
+2. **Lua 5.0 Compliance (`tools/validate_lua50.py`):** Enforces strict Lua 5.0 compatibility (rejects `#`, `%`, `//`, `goto`, `string.match`, `table.unpack`, `select`, etc.).
+3. **AST Global Scope Scanner (`tools/scan_ast_globals.py`):** Uses `luaparser` to parse Lua AST and ensure zero undeclared global variables, global functions, or unresolved API calls.
+4. **Cross-Module Contract & Load-Order Auditor (`tools/deep_contract_audit.py`):** Verifies TOC load order, exported API symbols, schema contracts, and eliminates top-level chunk load-order regressions.
+5. **API Call Resolution (`tools/verify_all_api_calls.py`):** Validates 100% call-site resolution of internal `UA.*` / `PriestBiS.*` APIs.
+6. **Multi-Locale Patterns & Negative Tests (`tools/test_gear_patterns.py`):** Tests 57 positive and negative tooltip regexes across `enUS`, `zhCN`, `ruRU`, `deDE`, and `frFR` (ensuring non-priest stats like Shadow damage, Melee AP, and Armor are strictly rejected).
+7. **Database Integrity (`tools/validate_item_database.py`):** Validates curated metadata, set bonus breakpoints, and boss encounter drop tables.
+8. **Golden-Table EP Regression (`tools/golden_table_test.py`):** Asserts zero EP valuation drift against canonical reference items and set bonuses.
+9. **In-Memory Lua VM Simulation (`tools/test_simulation_vm.py`):** Boots an embedded Lua runtime via `lupa` with mocked WoW 1.12 APIs, testing dynamic talent sync, EP scoring, dual-slot comparisons, and set math without launching WoW.
 
 ---
 

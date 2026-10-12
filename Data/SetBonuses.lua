@@ -48,27 +48,27 @@ UA.SET_BONUSES = {
     -- TIER 2: Vestments of Transcendence (BWL)
     -- ================================================
     ["Vestments of Transcendence"] = {
-        [3] = { ep = 75, desc = "3-Piece Bonus: +15% Mana Regen while casting" },
+        [3] = { ep = 25, desc = "3-Piece Bonus: +15% Mana Regen while casting" },
         [5] = { ep = 10, desc = "5-Piece Bonus: Chance to Fade when struck" },
         [8] = { ep = 40, desc = "8-Piece Bonus: Greater Heal triggers Rank 5 Renew" },
     },
     ["卓越法衣"] = {
-        [3] = { ep = 75, desc = "3件套效果: 施法时保持15%的法力回复速度" },
+        [3] = { ep = 25, desc = "3件套效果: 施法时保持15%的法力回复速度" },
         [5] = { ep = 10, desc = "5件套效果: 被击中时有几率渐隐" },
         [8] = { ep = 40, desc = "8件套效果: 强效治疗术触发5级恢复" },
     },
     ["Одеяния Превосходства"] = {
-        [3] = { ep = 75, desc = "3 предмета: +15% к скорости восполнения маны во время произнесения заклинаний" },
+        [3] = { ep = 25, desc = "3 предмета: +15% к скорости восполнения маны во время произнесения заклинаний" },
         [5] = { ep = 10, desc = "5 предметов: Шанс Ухода в тень при получении урона" },
         [8] = { ep = 40, desc = "8 предметов: Великое исцеление накладывает Обновление (Ранг 5)" },
     },
     ["Gewänder der Transzendenz"] = {
-        [3] = { ep = 75, desc = "3-Set: +15% Manaregeneration während des Zauberns" },
+        [3] = { ep = 25, desc = "3-Set: +15% Manaregeneration während des Zauberns" },
         [5] = { ep = 10, desc = "5-Set: Chance auf Verblassen bei Erleiden von Schaden" },
         [8] = { ep = 40, desc = "8-Set: Große Heilung löst Erneuerung (Rang 5) aus" },
     },
     ["Habits de transcendance"] = {
-        [3] = { ep = 75, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" },
+        [3] = { ep = 25, desc = "Bonus 3 pièces: +15% Récupération de mana pendant l'incantation" },
         [5] = { ep = 10, desc = "Bonus 5 pièces: Chance d'Oubli en subissant des dégâts" },
         [8] = { ep = 40, desc = "Bonus 8 pièces: Soins supérieurs déclenche Rénovation (Rang 5)" },
     },

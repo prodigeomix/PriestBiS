@@ -1,0 +1,3 @@
+# PriestBiS Test & Verification Suite Dependencies
+lupa>=2.0
+luaparser>=2.0.0

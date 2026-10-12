@@ -10,8 +10,8 @@ PriestBiS.UA = UA
 _G.PriestBiS = PriestBiS
 _G.UA = UA
 
-PriestBiS.VERSION = "1.3.4"
-UA.VERSION = "1.3.4"
+PriestBiS.VERSION = "1.3.5"
+UA.VERSION = "1.3.5"
 
 local format = string.format
 local tostring = tostring
@@ -56,6 +56,48 @@ end
 -- STAT WEIGHTS & EQUIVALENCE POINTS (EP)
 -- ================================================
 
+UA.WEIGHT_PRESETS = {
+    ["standard"] = {
+        name = "Capybara (Mana-weighted / Longevity)",
+        healing = 1.0,
+        mp5 = 2.0,
+        int = 0.5,
+        spi = 0.5,
+        spell_crit = 2.0,
+        stamina = 0.0,
+        spell_damage = 0.0,
+        armor = 0.0,
+        casting_regen = 2.0,
+        haste = 10.0,
+    },
+    ["capybara"] = {
+        name = "Capybara (Mana-weighted / Longevity)",
+        healing = 1.0,
+        mp5 = 2.0,
+        int = 0.5,
+        spi = 0.5,
+        spell_crit = 2.0,
+        stamina = 0.0,
+        spell_damage = 0.0,
+        armor = 0.0,
+        casting_regen = 2.0,
+        haste = 10.0,
+    },
+    ["throughput"] = {
+        name = "Throughput (Inspiration / Fast GH)",
+        healing = 1.0,
+        mp5 = 2.20,
+        int = 0.22,
+        spi = 0.70,
+        spell_crit = 8.0,
+        stamina = 0.05,
+        spell_damage = 0.0,
+        armor = 0.0,
+        casting_regen = 5.0,
+        haste = 10.0,
+    },
+}
+
 UA.STAT_WEIGHTS = {
     healing = 1.0,         -- Baseline throughput (+Healing and +Damage/Healing hybrid gear)
     spi = 0.70,            -- Dynamic default (5/5 Spiritual Guidance + 3/3 Meditation): 0.30 Base FSR + 0.25 SG + 0.15 Med
@@ -68,6 +110,54 @@ UA.STAT_WEIGHTS = {
     casting_regen = 5.0,   -- 1% Mana regen while casting (~2.2 MP5 at 300 Spi = ~5.0 EP)
     haste = 10.0,          -- 1% Casting speed / Haste (~10.0 EP for faster Greater Heal / Flash Heal casts)
 }
+
+UA.activeWeightProfile = "standard"
+
+function UA.GetActiveWeightProfile()
+    local db = _G.PriestBiSDB
+    if db and db.weightProfile then
+        return db.weightProfile
+    end
+    return UA.activeWeightProfile or "standard"
+end
+
+function UA.ApplyStatWeights(profileOrWeights)
+    local db = _G.PriestBiSDB
+    local target = nil
+    if type(profileOrWeights) == "string" and UA.WEIGHT_PRESETS[profileOrWeights] then
+        target = UA.WEIGHT_PRESETS[profileOrWeights]
+        UA.activeWeightProfile = profileOrWeights
+        if db then
+            db.weightProfile = profileOrWeights
+            db.customWeights = nil
+        end
+    elseif type(profileOrWeights) == "table" then
+        target = profileOrWeights
+        UA.activeWeightProfile = "custom"
+        if db then
+            db.customWeights = profileOrWeights
+            db.weightProfile = "custom"
+        end
+    elseif db and db.customWeights then
+        target = db.customWeights
+        UA.activeWeightProfile = "custom"
+    elseif db and db.weightProfile and UA.WEIGHT_PRESETS[db.weightProfile] then
+        target = UA.WEIGHT_PRESETS[db.weightProfile]
+        UA.activeWeightProfile = db.weightProfile
+    else
+        target = UA.WEIGHT_PRESETS["standard"]
+        UA.activeWeightProfile = "standard"
+    end
+
+    if target then
+        for k, v in pairs(target) do
+            if k ~= "name" and type(v) == "number" then
+                UA.STAT_WEIGHTS[k] = v
+            end
+        end
+    end
+    UA.ClearCache()
+end
 
 UA.SLOT_IDS = {
     Head = 1, Neck = 2, Shoulder = 3, Shirt = 4, Chest = 5,
@@ -223,6 +313,13 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         end
     end
 
+    if slotID and not rawLink and GetInventoryItemLink then
+        local invLink = GetInventoryItemLink("player", slotID)
+        if invLink then
+            rawLink = invLink
+        end
+    end
+
     if not rawLink and itemID then
         rawLink = "item:" .. tostring(itemID) .. ":0:0:0"
     end
@@ -233,15 +330,24 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
 
     -- Identify if this link is a variant (has non-zero random enchant suffix or permanent enchant)
     local isVariant = false
+    local hasEnchant = false
+    local hasRandomSuffix = false
     if rawLink then
-        local _, _, _, encID, sufID = string.find(rawLink, "item:(%d+):(%d+):(%d+)")
-        if (encID and encID ~= "0") or (sufID and sufID ~= "0") then
+        local _, _, _, encID, sufID = string.find(rawLink, "item:(%d+):([%-%d]+):([%-%d]+)")
+        if encID and encID ~= "0" and encID ~= 0 then
+            hasEnchant = true
+            isVariant = true
+        end
+        if sufID and sufID ~= "0" and sufID ~= 0 then
+            hasRandomSuffix = true
             isVariant = true
         end
     end
 
     local cacheKey
-    if isVariant then
+    if slotID then
+        cacheKey = "equipped:" .. tostring(slotID) .. ":" .. tostring(itemID or rawLink)
+    elseif isVariant then
         cacheKey = rawLink or itemLink or (itemID and tostring(itemID)) or slotID
     else
         cacheKey = itemID or rawLink or slotID
@@ -252,7 +358,8 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
     end
 
     -- Secondary cache hit: if standard itemID is already cached from previous lookups, reuse immediately
-    if not isVariant and itemID and ITEM_STAT_CACHE[itemID] then
+    -- (Do not reuse for equipped slot scans or variants which require enchant stripping / live sets)
+    if not slotID and not isVariant and itemID and ITEM_STAT_CACHE[itemID] then
         ITEM_STAT_CACHE[cacheKey] = ITEM_STAT_CACHE[itemID]
         return ITEM_STAT_CACHE[itemID]
     end
@@ -266,10 +373,10 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         local r = getglobal("UAScanningTooltipTextRight" .. j)
         if r then r:SetText("") end
     end
-    if rawLink then
-        pcall(function() scanTooltip:SetHyperlink(rawLink) end)
-    elseif slotID and GetInventoryItemLink and GetInventoryItemLink("player", slotID) then
+    if slotID and GetInventoryItemLink and GetInventoryItemLink("player", slotID) then
         pcall(function() scanTooltip:SetInventoryItem("player", slotID) end)
+    elseif rawLink then
+        pcall(function() scanTooltip:SetHyperlink(rawLink) end)
     end
 
     local stats = {
@@ -313,6 +420,19 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
         return false
     end
 
+    local function IsEquipOrSetLine(str)
+        if not str or str == "" then return false end
+        local clean = string.gsub(str, "^|c%x%x%x%x%x%x%x%x", "")
+        clean = string.gsub(clean, "^%s+", "")
+        if IsSetLine(clean) then return true end
+        if string.find(clean, "^Equip:") or string.find(clean, "^Use:") or string.find(clean, "^Chance on hit:") then return true end
+        if string.find(clean, "^Anlegen:") or string.find(clean, "^Ausgerüstet:") or string.find(clean, "^Benutzen:") or string.find(clean, "^Chance beim Treffen:") then return true end
+        if string.find(clean, "^Équipé%s*:") or string.find(clean, "^Equipé%s*:") or string.find(clean, "^Utiliser%s*:") or string.find(clean, "^Chances d'un coup:") then return true end
+        if string.find(clean, "^装备[：:]") or string.find(clean, "^使用[：:]") or string.find(clean, "^击中时可能[：:]") then return true end
+        if string.find(clean, "^Если на персонаже:") or string.find(clean, "^Использование:") or string.find(clean, "^Вероятность попадания:") then return true end
+        return false
+    end
+
     local numLines = tonumber(scanTooltip:NumLines())
     if numLines and numLines > 0 then
         scanTooltip._prevLineCount = math.max(numLines, 30)
@@ -337,7 +457,18 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
                     end
                 end
 
-                if not IsSetLine(text) then
+                -- Check if this line is an applied permanent enchant to strip (e.g. +24 Healing Spells, +4 All Stats)
+                local isEnchantLine = false
+                if hasEnchant and not hasRandomSuffix and leftLine and leftLine.GetTextColor then
+                    local lr, lg, lb = leftLine:GetTextColor()
+                    if lr and lg and lb and lr < 0.35 and lg > 0.65 and lb < 0.35 then
+                        if not IsEquipOrSetLine(text) then
+                            isEnchantLine = true
+                        end
+                    end
+                end
+
+                if not isEnchantLine and not IsSetLine(text) then
                     -- Check Class restrictions (English, German, French, Chinese, Russian)
                     local _, _, classStr = string.find(text, "Classes:%s*(.+)")
                     if not classStr then _, _, classStr = string.find(text, "Klassen:%s*(.+)") end
@@ -542,7 +673,7 @@ function UA.ScanItemStats(itemID, itemLink, slotID)
 
     if stats.name ~= "" and stats.slot ~= nil then
         ITEM_STAT_CACHE[cacheKey] = stats
-        if not isVariant and itemID and cacheKey ~= itemID then
+        if not slotID and not isVariant and itemID and cacheKey ~= itemID then
             ITEM_STAT_CACHE[itemID] = stats
         end
         return stats
@@ -816,16 +947,9 @@ function UA.GetEquippedItemData(slotName)
     if link then
         local itemID = UA.GetItemIDFromLink(link)
         if itemID then
-            -- Normalize equipped item to its base item link to ensure apples-to-apples comparison
-            -- (strips player-applied permanent enchants like +55 Healing so raw drops are not penalized)
-            local _, _, idStr, _, sufStr = string.find(link, "item:(%d+):([%-%d]+):([%-%d]+)")
-            local baseLink
-            if idStr then
-                baseLink = "item:" .. idStr .. ":0:" .. (sufStr or "0") .. ":0"
-            else
-                baseLink = "item:" .. itemID .. ":0:0:0"
-            end
-            local data = UA.GetItemData(itemID, baseLink)
+            -- Pass slotID to GetItemData so ScanItemStats queries live paperdoll via SetInventoryItem
+            -- and natively strips player-applied enchants (green lines without Equip/Set/Use).
+            local data = UA.GetItemData(itemID, link, slotID)
             if data then return data end
         end
     end
@@ -972,7 +1096,14 @@ end
 function UA.UpdateDynamicTalentWeights()
     if not GetNumTalents or not GetTalentInfo then return end
     local _, playerClass = UnitClass("player")
-    if playerClass ~= "PRIEST" then return end
+    if playerClass and playerClass ~= "PRIEST" then return end
+
+    -- Respect fixed weight profiles (e.g. standard/Capybara) unless dynamicTalentWeights is explicitly enabled
+    local profile = UA.GetActiveWeightProfile()
+    local db = _G.PriestBiSDB
+    if profile ~= "throughput" and not (db and db.dynamicTalentWeights) then
+        return
+    end
 
     local sgRank = 0
     local medRank = 0

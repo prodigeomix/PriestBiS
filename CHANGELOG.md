@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.3.5] - 2026-10-12
+
+### Fixed
+- **Equipped Item Live Paperdoll Scanning & Enchant Stripping**:
+  - `UA.GetEquippedItemData(slotName)` now forwards `slotID` to `UA.GetItemData(itemID, link, slotID)` to utilize Blizzard's native `scanTooltip:SetInventoryItem("player", slotID)` API instead of relying on synthetic item hyperlinks (`item:itemID:0:0:0`), which frequently dropped lines or failed to load set names on Vanilla 1.12.1.
+  - Added native permanent enchant stripping in `UA.ScanItemStats`: detects green tooltip font string text (`r < 0.35 and g > 0.65 and b < 0.35`) without `Equip:`, `Use:`, or `Set:` prefixes on items with an applied enchant ID (`encID ~= "0"`), ensuring apples-to-apples comparisons without penalizing unenchanted drops or inflating equipped gear.
+  - Synchronized `UA.ClearCache()` invocation on `UNIT_INVENTORY_CHANGED` event in `PriestBiS.lua`, keeping equipped slot stats and tier set counts refreshed upon gear swaps.
+- **Set Bonus Breakpoint & Set Break Penalty Calculation**:
+  - Resolved false upgrade recommendations when evaluating lower tier pieces against higher tier sets (e.g. Tier 1 *Vambraces of Prophecy* vs Tier 2 *Bindings of Transcendence*): correctly detects that transitioning from 3 to 4 pieces of a set grants 0 additional breakpoint EP, while breaking the equipped 3-piece *Transcendence* set deducts the full 25 EP penalty (`lostSetBonusEP = 25`), correctly identifying the swap as a -33 EP downgrade.
+- **Tooltip Right-Edge Truncation / Fixed Width Clipping**:
+  - Updated `UA.AdjustTooltipSize(tooltip)` to scan all visible lines (both native 1..30 and custom lines) and calculate `maxLineWidth` across left and right font strings, dynamically executing `tooltip:SetWidth(maxLineWidth)` so long comparison strings and localized set descriptions are never clipped on the right.
+
+### Added
+- **Suite 6 In-Memory Simulation Verification**: Added comprehensive test suite in `tools/test_simulation_vm.py` testing live paperdoll inventory scanning, green enchant stripping, tier set breakpoints, and set breaking penalties.
+
+---
+
 ## [1.3.4] - 2026-09-25
 
 ### Fixed
